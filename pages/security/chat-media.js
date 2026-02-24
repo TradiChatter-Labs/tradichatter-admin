@@ -1,0 +1,1 @@
+export { ChatMediaSecurity as default } from './admin-security';

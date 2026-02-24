@@ -1,0 +1,1 @@
+export { AuditHistory as default } from './admin-security';

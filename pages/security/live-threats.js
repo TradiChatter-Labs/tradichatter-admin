@@ -1,0 +1,1 @@
+export { LiveThreats as default } from './admin-security';

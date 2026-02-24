@@ -1,0 +1,1 @@
+export { SecurityReports as default } from './admin-security';
