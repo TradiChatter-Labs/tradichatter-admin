@@ -93,9 +93,6 @@ export default function Login() {
           </button>
         </form>
 
-        <div className="text-center text-xs text-gray-500">
-          Default: admin@tradichatter.com / Admin123!@#
-        </div>
       </div>
     </div>
   );

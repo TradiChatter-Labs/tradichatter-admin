@@ -14,16 +14,19 @@ if (process.env.NODE_ENV === 'production' && ADMIN_JWT_SECRET === 'admin-secret-
   throw new Error('CRITICAL: Default admin JWT secret detected in production. Set ADMIN_JWT_SECRET environment variable.');
 }
 
-// Mock admin for development (password: Admin123!@#)
-const mockAdmin = {
-  id: 'admin_001',
-  email: 'admin@tradichatter.com',
-  password_hash: '$2b$12$VOUDVEcewtw/5SGEQVmwkecpkHhDtplWuJeiwt0Xs7HmAYjIf/NZ6',
-  full_name: 'System Administrator',
-  role: 'SUPER_ADMIN',
-  status: 'ACTIVE',
-  failed_attempts: 0
-};
+// Supabase admin lookup
+import { supabase } from '../../../lib/supabaseAdmin';
+
+async function findAdmin(email) {
+  const { data, error } = await supabase
+    .from('admin_users')
+    .select('*')
+    .eq('email', email.toLowerCase())
+    .eq('is_active', true)
+    .single();
+  if (error || !data) return null;
+  return data;
+}
 
 // Rate limiting helper
 function checkRateLimit(ip, email) {
@@ -92,34 +95,34 @@ export default async function handler(req, res) {
       return res.status(429).json({ error: rateLimitCheck.reason });
     }
 
-    // Check credentials
-    if (email.toLowerCase() !== mockAdmin.email.toLowerCase()) {
+    // Find admin in Supabase
+    const admin = await findAdmin(email);
+    if (!admin) {
       logFailedAttempt(clientIP, email);
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    const isValidPassword = await bcrypt.compare(password, mockAdmin.password_hash);
+    const isValidPassword = await bcrypt.compare(password, admin.password_hash);
     if (!isValidPassword) {
       logFailedAttempt(clientIP, email);
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    if (mockAdmin.status !== 'ACTIVE') {
-      return res.status(401).json({ error: 'Account is not active' });
-    }
-
     // Clear failed attempts on successful login
     clearAttempts(clientIP, email);
-    
-    // Log successful login
+
+    // Update last_login
+    await supabase.from('admin_users').update({ last_login: new Date().toISOString() }).eq('id', admin.id);
+
     console.log(`[ADMIN_SECURITY] Successful login for ${email} from ${clientIP} at ${new Date().toISOString()}`);
 
-    // Create JWT token with additional security claims
+    // Create JWT token
     const token = jwt.sign(
       { 
-        adminId: mockAdmin.id,
-        email: mockAdmin.email,
-        role: mockAdmin.role,
+        adminId: admin.id,
+        email: admin.email,
+        role: admin.role,
+        name: admin.name,
         loginTime: Date.now(),
         ip: clientIP
       },
@@ -127,7 +130,6 @@ export default async function handler(req, res) {
       { expiresIn: '8h' }
     );
 
-    // Set secure cookie with production-ready settings
     const isProduction = process.env.NODE_ENV === 'production';
     res.setHeader('Set-Cookie', 
       `admin_token=${token}; HttpOnly; ${isProduction ? 'Secure;' : ''} SameSite=Strict; Max-Age=28800; Path=/`
@@ -136,10 +138,10 @@ export default async function handler(req, res) {
     res.status(200).json({
       success: true,
       admin: {
-        id: mockAdmin.id,
-        email: mockAdmin.email,
-        full_name: mockAdmin.full_name,
-        role: mockAdmin.role
+        id: admin.id,
+        email: admin.email,
+        name: admin.name,
+        role: admin.role
       },
       token,
       expiresAt: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString()
