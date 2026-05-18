@@ -1,0 +1,15 @@
+node_modules
+.next
+.git
+.env
+.env.local
+.env.production
+infra
+tests
+validation
+services/completeFraudSystemValidator.js
+services/executeFinalFraudValidation.js
+tradichatter-mobile-mirror.bfg-report
+*.md
+*.log
+*.txt
