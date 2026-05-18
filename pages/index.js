@@ -1,95 +1,191 @@
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Users, Store, DollarSign, BarChart3, ShoppingCart, CreditCard, TrendingUp, Settings, Shield, Activity } from 'lucide-react';
+import { Users, Store, DollarSign, BarChart3, ShoppingCart, CreditCard, TrendingUp, Settings, Shield, Activity, Globe, Bot, Truck, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
 
 export default function Dashboard() {
-  const stats = [
-    { name: 'Total Users', value: '1,247', icon: Users, change: '+12%' },
-    { name: 'Active Businesses', value: '89', icon: Store, change: '+8%' },
-    { name: 'Total Orders', value: '3,421', icon: ShoppingCart, change: '+23%' },
-    { name: 'Revenue', value: '₦2.4M', icon: CreditCard, change: '+15%' },
-  ];
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDashboard();
+    const interval = setInterval(fetchDashboard, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetchDashboard = async () => {
+    try {
+      const res = await fetch('/api/system/dashboard-stats');
+      const json = await res.json();
+      if (json.success) setStats(json.data);
+    } catch (err) {
+      console.error('Dashboard fetch error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const sections = [
     {
-      title: 'Business Section',
-      description: 'Manage businesses, orders, payments, and business operations',
+      title: 'Retail App (Business)',
+      description: 'Manage sellers, orders, payments, escrow, subscriptions',
       icon: Store,
       color: 'bg-blue-500',
       href: '/business-section',
-      features: ['Business Management', 'Orders & Payments', 'KYC Verification', 'Inventory', 'Marketing']
+      features: ['Business Management', 'Orders & Escrow', 'Subscriptions', 'KYC', 'Payments']
     },
     {
-      title: 'Customer Section', 
-      description: 'Manage customers, support, reviews, and customer analytics',
+      title: 'Retail App (Customer)',
+      description: 'Manage buyers, support, reviews, chat moderation',
       icon: Users,
       color: 'bg-green-500',
       href: '/customer-section',
-      features: ['User Management', 'Customer Support', 'Reviews', 'Chat Moderation', 'Analytics']
+      features: ['User Management', 'Customer Support', 'Chat Moderation', 'Call Management']
     },
     {
-      title: 'Affiliate Section',
-      description: 'Manage affiliate program, commissions, and affiliate analytics', 
-      icon: DollarSign,
+      title: 'SourceHub (B2B)',
+      description: 'Suppliers, wholesale orders, escrow, logistics, treasury',
+      icon: Truck,
+      color: 'bg-indigo-500',
+      href: '/sourcehub',
+      features: ['Supplier Management', 'Wholesale Orders', 'Escrow & Treasury', 'Disputes', 'Logistics']
+    },
+    {
+      title: 'AI Agents',
+      description: 'Monitor and control 6 AI agents for Premium sellers',
+      icon: Bot,
       color: 'bg-purple-500',
-      href: '/affiliate-section',
-      features: ['Affiliate Management', 'Commission Tracking', 'Payouts', 'Performance Analytics']
+      href: '/ai-agents',
+      features: ['Agent Dashboard', 'Conversation Logs', 'Kill Switch', 'Knowledge Base']
     },
     {
-      title: 'Content Moderation',
-      description: 'Manage content moderation, user suspensions, and platform safety',
+      title: 'Voice & Video',
+      description: 'Translation pipeline, call monitoring, language config',
+      icon: Globe,
+      color: 'bg-teal-500',
+      href: '/voice-translation',
+      features: ['Pipeline Health', 'Language Config', 'Call Monitoring', 'Latency Metrics']
+    },
+    {
+      title: 'AVS Engine',
+      description: 'Supplier verification, trust scores, badge management',
       icon: Shield,
       color: 'bg-red-500',
-      href: '/content-moderation',
-      features: ['Reported Content', 'Moderation Rules', 'Content Takedown', 'User Suspension']
+      href: '/avs-engine',
+      features: ['Verification Queue', 'Badge Management', 'Weight Tuning', 'Audit Trail']
     },
     {
-      title: 'System Configuration',
-      description: 'Manage system settings, feature flags, and platform configuration',
+      title: 'Affiliate Program',
+      description: 'Manage affiliates, commissions, payouts, analytics',
+      icon: DollarSign,
+      color: 'bg-amber-500',
+      href: '/affiliate-section',
+      features: ['Affiliate Management', 'Commission Tracking', 'Payouts', 'Leaderboard']
+    },
+    {
+      title: 'System & Config',
+      description: 'Feature flags, monitoring, maintenance, security',
       icon: Settings,
-      color: 'bg-orange-500',
+      color: 'bg-gray-600',
       href: '/system-configuration',
-      features: ['Feature Flags', 'App Configuration', 'Notification Templates', 'Maintenance Mode']
-    }
+      features: ['Feature Flags', 'System Monitoring', 'Maintenance Mode', 'Security Audit']
+    },
   ];
+
+  const getHealthIcon = (status) => {
+    if (status === 'healthy') return <CheckCircle className="h-4 w-4 text-green-500" />;
+    if (status === 'timeout' || status === 'degraded') return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
+    return <XCircle className="h-4 w-4 text-red-500" />;
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">TradiChatt Admin Dashboard</h1>
+        <h1 className="text-2xl font-bold text-gray-900">TradiChatter Admin Dashboard</h1>
         <p className="mt-1 text-sm text-gray-600">
-          Manage your platform across three main sections: Business, Customer, and Affiliate operations.
+          Unified control panel for all TradiChatter systems — Retail, SourceHub, AI, Voice, AVS.
         </p>
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
-        {stats.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <div key={stat.name} className="bg-white overflow-hidden shadow rounded-lg">
-              <div className="p-5">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <Icon className="h-6 w-6 text-gray-400" />
-                  </div>
-                  <div className="ml-5 w-0 flex-1">
-                    <dl>
-                      <dt className="text-sm font-medium text-gray-500 truncate">{stat.name}</dt>
-                      <dd className="flex items-baseline">
-                        <div className="text-2xl font-semibold text-gray-900">{stat.value}</div>
-                        <div className="ml-2 flex items-baseline text-sm font-semibold text-green-600">
-                          <TrendingUp className="h-4 w-4 mr-1" />
-                          {stat.change}
-                        </div>
-                      </dd>
-                    </dl>
-                  </div>
+      {stats && (
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+          <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="p-5">
+              <div className="flex items-center">
+                <Users className="h-6 w-6 text-blue-500" />
+                <div className="ml-5 w-0 flex-1">
+                  <dt className="text-sm font-medium text-gray-500 truncate">Total Users</dt>
+                  <dd className="text-2xl font-semibold text-gray-900">{stats.totalUsers?.toLocaleString()}</dd>
                 </div>
               </div>
             </div>
-          );
-        })}
-      </div>
+          </div>
+          <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="p-5">
+              <div className="flex items-center">
+                <Store className="h-6 w-6 text-green-500" />
+                <div className="ml-5 w-0 flex-1">
+                  <dt className="text-sm font-medium text-gray-500 truncate">Active Businesses</dt>
+                  <dd className="text-2xl font-semibold text-gray-900">{stats.activeBusinesses?.toLocaleString()}</dd>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="p-5">
+              <div className="flex items-center">
+                <ShoppingCart className="h-6 w-6 text-orange-500" />
+                <div className="ml-5 w-0 flex-1">
+                  <dt className="text-sm font-medium text-gray-500 truncate">Total Orders</dt>
+                  <dd className="text-2xl font-semibold text-gray-900">{stats.totalOrders?.toLocaleString()}</dd>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="p-5">
+              <div className="flex items-center">
+                <CreditCard className="h-6 w-6 text-purple-500" />
+                <div className="ml-5 w-0 flex-1">
+                  <dt className="text-sm font-medium text-gray-500 truncate">Revenue</dt>
+                  <dd className="text-2xl font-semibold text-gray-900">₦{(stats.totalRevenue || 0).toLocaleString()}</dd>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Service Health Bar */}
+      {stats?.services && (
+        <div className="bg-white shadow rounded-lg p-4 mb-8">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-medium text-gray-700">Service Health</h3>
+            <span className="text-xs text-gray-500">
+              {stats.systemHealth?.healthy}/{stats.systemHealth?.total} healthy
+            </span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            {Object.entries(stats.services).map(([key, svc]) => (
+              <div key={key} className="flex items-center space-x-2 p-2 rounded border border-gray-100">
+                {getHealthIcon(svc.status)}
+                <div>
+                  <div className="text-xs font-medium text-gray-700">{svc.name}</div>
+                  <div className="text-xs text-gray-400">{svc.latency}ms</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Main Sections */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3 mb-8">
@@ -97,34 +193,26 @@ export default function Dashboard() {
           const Icon = section.icon;
           return (
             <Link key={section.title} href={section.href}>
-              <div className="bg-white overflow-hidden shadow rounded-lg hover:shadow-lg transition-shadow cursor-pointer">
+              <div className="bg-white overflow-hidden shadow rounded-lg hover:shadow-lg transition-shadow cursor-pointer h-full">
                 <div className="p-6">
                   <div className="flex items-center">
                     <div className={`flex-shrink-0 ${section.color} rounded-md p-3`}>
                       <Icon className="h-6 w-6 text-white" />
                     </div>
-                    <div className="ml-5 w-0 flex-1">
+                    <div className="ml-4">
                       <h3 className="text-lg font-medium text-gray-900">{section.title}</h3>
                       <p className="mt-1 text-sm text-gray-500">{section.description}</p>
                     </div>
                   </div>
-                  
                   <div className="mt-4">
-                    <h4 className="text-sm font-medium text-gray-700 mb-2">Key Features:</h4>
                     <ul className="text-sm text-gray-500 space-y-1">
-                      {section.features.map((feature, index) => (
-                        <li key={index} className="flex items-center">
+                      {section.features.map((feature, i) => (
+                        <li key={i} className="flex items-center">
                           <span className="w-1.5 h-1.5 bg-gray-400 rounded-full mr-2"></span>
                           {feature}
                         </li>
                       ))}
                     </ul>
-                  </div>
-                  
-                  <div className="mt-4">
-                    <span className="text-sm font-medium text-blue-600 hover:text-blue-500">
-                      Access Section →
-                    </span>
                   </div>
                 </div>
               </div>
@@ -137,42 +225,30 @@ export default function Dashboard() {
       <div className="bg-white shadow rounded-lg">
         <div className="px-4 py-5 sm:p-6">
           <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">Quick Access</h3>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-9">
-            <Link href="/admin-users" className="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
-              <Users className="h-8 w-8 text-red-500 mx-auto mb-2" />
-              <div className="text-sm font-medium text-gray-900">Admin Users</div>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-6">
+            <Link href="/feature-flags" className="text-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
+              <Settings className="h-6 w-6 text-orange-500 mx-auto mb-1" />
+              <div className="text-xs font-medium text-gray-900">Feature Flags</div>
             </Link>
-            <Link href="/admin-activity-logs" className="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
-              <BarChart3 className="h-8 w-8 text-red-500 mx-auto mb-2" />
-              <div className="text-sm font-medium text-gray-900">Activity Logs</div>
+            <Link href="/system-monitoring" className="text-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
+              <Activity className="h-6 w-6 text-blue-500 mx-auto mb-1" />
+              <div className="text-xs font-medium text-gray-900">Monitoring</div>
             </Link>
-            <Link href="/admin-2fa" className="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
-              <CreditCard className="h-8 w-8 text-red-500 mx-auto mb-2" />
-              <div className="text-sm font-medium text-gray-900">Two-Factor Auth</div>
+            <Link href="/escrow" className="text-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
+              <Shield className="h-6 w-6 text-green-500 mx-auto mb-1" />
+              <div className="text-xs font-medium text-gray-900">Escrow</div>
             </Link>
-            <Link href="/analytics" className="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
-              <BarChart3 className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-              <div className="text-sm font-medium text-gray-900">Analytics</div>
+            <Link href="/subscription-management" className="text-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
+              <CreditCard className="h-6 w-6 text-purple-500 mx-auto mb-1" />
+              <div className="text-xs font-medium text-gray-900">Subscriptions</div>
             </Link>
-            <Link href="/content-moderation" className="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
-              <Shield className="h-8 w-8 text-red-500 mx-auto mb-2" />
-              <div className="text-sm font-medium text-gray-900">Content Moderation</div>
+            <Link href="/kyc" className="text-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
+              <Users className="h-6 w-6 text-red-500 mx-auto mb-1" />
+              <div className="text-xs font-medium text-gray-900">KYC</div>
             </Link>
-            <Link href="/kyc" className="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
-              <Store className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-              <div className="text-sm font-medium text-gray-900">KYC Verification</div>
-            </Link>
-            <Link href="/payments" className="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
-              <CreditCard className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-              <div className="text-sm font-medium text-gray-900">Payments</div>
-            </Link>
-            <Link href="/feature-flags" className="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
-              <Settings className="h-8 w-8 text-orange-500 mx-auto mb-2" />
-              <div className="text-sm font-medium text-gray-900">Feature Flags</div>
-            </Link>
-            <Link href="/system-monitoring" className="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
-              <Activity className="h-8 w-8 text-blue-500 mx-auto mb-2" />
-              <div className="text-sm font-medium text-gray-900">System Monitoring</div>
+            <Link href="/admin-activity-logs" className="text-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
+              <BarChart3 className="h-6 w-6 text-gray-500 mx-auto mb-1" />
+              <div className="text-xs font-medium text-gray-900">Audit Logs</div>
             </Link>
           </div>
         </div>

@@ -1,58 +1,24 @@
-import appwriteAdmin from '../lib/appwriteAdmin.js';
+import { supabase, getDashboardStats } from '../lib/supabaseAdmin.js';
 
-// Appwrite database adapter for admin portal
-const db = {
-  execute: async (query, params) => {
-    console.log('Appwrite Query:', query, params);
-    
-    // Handle admin authentication queries
-    if (query.includes('SELECT') && query.includes('admins')) {
-      // Mock admin user for authentication
-      return [[{ 
-        id: 1, 
-        email: 'admin@tradichatter.com', 
-        role: 'admin', 
-        status: 'ACTIVE' 
-      }]];
-    }
-    
-    // Handle permission queries
-    if (query.includes('admin_permissions')) {
-      return [[{ name: 'full_access' }]];
-    }
-    
-    // Handle audit log inserts
-    if (query.includes('INSERT INTO audit_logs')) {
-      console.log('Audit log:', params);
-      return [{ insertId: Date.now() }];
-    }
-    
-    return [[]];
-  }
-};
+// Primary database: Supabase (same as mobile app)
+// Legacy: Appwrite (read-only, for migration period)
 
-// Test connection to Appwrite
 const testConnection = async () => {
   try {
-    const result = await appwriteAdmin.getDashboardStats();
-    if (result.success) {
-      console.log('✅ Admin portal connected to Appwrite database');
-      return true;
-    } else {
-      console.warn('⚠️ Appwrite connection issue, using mock data');
-      return false;
-    }
+    const { data, error } = await supabase.from('profiles').select('id', { count: 'exact', head: true });
+    if (error) throw error;
+    console.log('✅ Admin portal connected to Supabase');
+    return true;
   } catch (error) {
-    console.warn('⚠️ Appwrite not available, using mock authentication');
+    console.warn('⚠️ Supabase connection failed:', error.message);
     return false;
   }
 };
 
-// Initialize database connection
 const initDatabase = async () => {
   const isConnected = await testConnection();
-  console.log(`📊 Admin database initialized (Appwrite: ${isConnected ? 'connected' : 'mock mode'})`);
+  console.log(`📊 Admin database: Supabase ${isConnected ? 'connected' : 'unavailable'}`);
   return isConnected;
 };
 
-export { db, testConnection, initDatabase, appwriteAdmin };
+export { supabase, testConnection, initDatabase, getDashboardStats };

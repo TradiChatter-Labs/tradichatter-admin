@@ -1,0 +1,57 @@
+{
+  "family": "tradichatter-admin",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::144554015194:role/tradichatter-admin-execution-role",
+  "taskRoleArn": "arn:aws:iam::144554015194:role/tradichatter-admin-task-role",
+  "containerDefinitions": [
+    {
+      "name": "tradichatter-admin",
+      "image": "144554015194.dkr.ecr.eu-west-1.amazonaws.com/tradichatter-admin:latest",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 3001,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        { "name": "NODE_ENV", "value": "production" },
+        { "name": "PORT", "value": "3001" }
+      ],
+      "secrets": [
+        { "name": "SUPABASE_URL", "valueFrom": "arn:aws:secretsmanager:eu-west-1:144554015194:secret:tradichatter-admin/supabase-url" },
+        { "name": "SUPABASE_SERVICE_ROLE_KEY", "valueFrom": "arn:aws:secretsmanager:eu-west-1:144554015194:secret:tradichatter-admin/supabase-service-key" },
+        { "name": "ADMIN_JWT_SECRET", "valueFrom": "arn:aws:secretsmanager:eu-west-1:144554015194:secret:tradichatter-admin/jwt-secret" },
+        { "name": "RUST_BACKEND_URL", "valueFrom": "arn:aws:secretsmanager:eu-west-1:144554015194:secret:tradichatter-admin/rust-backend-url" },
+        { "name": "RUST_SERVICE_TOKEN", "valueFrom": "arn:aws:secretsmanager:eu-west-1:144554015194:secret:tradichatter-admin/rust-service-token" },
+        { "name": "AI_AGENT_SERVICE_URL", "valueFrom": "arn:aws:secretsmanager:eu-west-1:144554015194:secret:tradichatter-admin/ai-agent-url" },
+        { "name": "AI_AGENT_API_KEY", "valueFrom": "arn:aws:secretsmanager:eu-west-1:144554015194:secret:tradichatter-admin/ai-agent-key" },
+        { "name": "VOICE_TRANSLATION_URL", "valueFrom": "arn:aws:secretsmanager:eu-west-1:144554015194:secret:tradichatter-admin/voice-url" },
+        { "name": "VOICE_TRANSLATION_API_KEY", "valueFrom": "arn:aws:secretsmanager:eu-west-1:144554015194:secret:tradichatter-admin/voice-key" },
+        { "name": "SOURCEHUB_URL", "valueFrom": "arn:aws:secretsmanager:eu-west-1:144554015194:secret:tradichatter-admin/sourcehub-url" },
+        { "name": "SOURCEHUB_API_KEY", "valueFrom": "arn:aws:secretsmanager:eu-west-1:144554015194:secret:tradichatter-admin/sourcehub-key" },
+        { "name": "AVS_ENGINE_URL", "valueFrom": "arn:aws:secretsmanager:eu-west-1:144554015194:secret:tradichatter-admin/avs-url" },
+        { "name": "AVS_API_KEY", "valueFrom": "arn:aws:secretsmanager:eu-west-1:144554015194:secret:tradichatter-admin/avs-key" },
+        { "name": "FLUTTERWAVE_SECRET_KEY", "valueFrom": "arn:aws:secretsmanager:eu-west-1:144554015194:secret:tradichatter-admin/flutterwave-key" }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/tradichatter-admin",
+          "awslogs-region": "eu-west-1",
+          "awslogs-stream-prefix": "admin"
+        }
+      },
+      "healthCheck": {
+        "command": ["CMD-SHELL", "wget -q --spider http://localhost:3001/api/system/health || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 60
+      }
+    }
+  ]
+}
