@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Shield, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
-import { supabase } from '../../lib/supabaseAdmin';
 
 export default function AIKillSwitch() {
   const [history, setHistory] = useState([]);
