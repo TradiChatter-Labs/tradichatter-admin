@@ -1,10 +1,13 @@
 -- TradiChatter Admin: Feature Flags + Audit Logs
 -- Run on Supabase (same project as mobile app)
+-- Fixed: renamed 'key' to 'flag_key' (key is reserved in PostgreSQL)
 
 -- ─── Feature Flags ───────────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS feature_flags (
+DROP TABLE IF EXISTS feature_flags CASCADE;
+
+CREATE TABLE feature_flags (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  key TEXT UNIQUE NOT NULL,
+  flag_key TEXT UNIQUE NOT NULL,
   name TEXT NOT NULL,
   description TEXT,
   category TEXT NOT NULL DEFAULT 'general',
@@ -15,7 +18,7 @@ CREATE TABLE IF NOT EXISTS feature_flags (
 );
 
 -- Seed default flags
-INSERT INTO feature_flags (key, name, description, category, enabled) VALUES
+INSERT INTO feature_flags (flag_key, name, description, category, enabled) VALUES
   ('voice_calls', 'Voice Calls', 'Enable voice calling feature', 'communication', true),
   ('video_calls', 'Video Calls', 'Enable video calling feature', 'communication', true),
   ('voice_translation', 'Voice Translation', 'Enable real-time voice translation during calls', 'communication', true),
@@ -30,8 +33,7 @@ INSERT INTO feature_flags (key, name, description, category, enabled) VALUES
   ('kyc_verification', 'KYC Verification', 'Enable KYC verification for businesses', 'security', true),
   ('sourcehub', 'SourceHub', 'Enable B2B sourcing marketplace', 'commerce', true),
   ('avs_verification', 'AVS Supplier Verification', 'Enable AI supplier verification system', 'security', true),
-  ('maintenance_mode', 'Maintenance Mode', 'Put entire platform in maintenance mode', 'system', false)
-ON CONFLICT (key) DO NOTHING;
+  ('maintenance_mode', 'Maintenance Mode', 'Put entire platform in maintenance mode', 'system', false);
 
 -- ─── Admin Audit Logs ────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS admin_audit_logs (
@@ -55,7 +57,7 @@ CREATE TABLE IF NOT EXISTS admin_users (
   email TEXT UNIQUE NOT NULL,
   password_hash TEXT NOT NULL,
   name TEXT NOT NULL,
-  role TEXT NOT NULL DEFAULT 'viewer', -- super_admin, admin, moderator, viewer
+  role TEXT NOT NULL DEFAULT 'viewer',
   permissions JSONB DEFAULT '[]',
   mfa_enabled BOOLEAN DEFAULT false,
   mfa_secret TEXT,
@@ -64,12 +66,12 @@ CREATE TABLE IF NOT EXISTS admin_users (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- RLS: Only service role can access these tables (admin backend uses service key)
+-- RLS: Only service role can access these tables
 ALTER TABLE feature_flags ENABLE ROW LEVEL SECURITY;
 ALTER TABLE admin_audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE admin_users ENABLE ROW LEVEL SECURITY;
 
 -- Service role bypass (admin backend uses service_role key)
-CREATE POLICY "Service role full access" ON feature_flags FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Service role full access" ON admin_audit_logs FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Service role full access" ON admin_users FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Service role full access on feature_flags" ON feature_flags FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Service role full access on admin_audit_logs" ON admin_audit_logs FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Service role full access on admin_users" ON admin_users FOR ALL USING (true) WITH CHECK (true);
