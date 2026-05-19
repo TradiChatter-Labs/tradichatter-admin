@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { Settings, ToggleLeft, ToggleRight, Save, ArrowLeft, Loader2 } from 'lucide-react';
+import AccessGuard from '../components/AccessGuard';
+import { useAdmin } from '../hooks/useAdmin';
 
 export default function FeatureFlags() {
   const router = useRouter();
@@ -76,6 +78,7 @@ export default function FeatureFlags() {
   }
 
   return (
+    <AccessGuard requiredRole="admin">
     <div>
       <div className="mb-6">
         <button onClick={() => router.push('/system-configuration')} className="flex items-center text-gray-600 hover:text-gray-900 mb-4">
@@ -169,5 +172,6 @@ export default function FeatureFlags() {
         </div>
       </div>
     </div>
+    </AccessGuard>
   );
 }

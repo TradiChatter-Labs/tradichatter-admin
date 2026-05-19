@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Users, Plus, Shield, Ban, RefreshCw, Trash2, Edit, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import AccessGuard from '../components/AccessGuard';
 
 export default function AdminUsers() {
   const [users, setUsers] = useState([]);
@@ -97,6 +98,7 @@ export default function AdminUsers() {
   };
 
   return (
+    <AccessGuard requiredRole="super_admin">
     <div>
       <div className="flex justify-between items-center mb-8">
         <div>
@@ -260,5 +262,6 @@ export default function AdminUsers() {
         </div>
       )}
     </div>
+    </AccessGuard>
   );
 }

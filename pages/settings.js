@@ -1,7 +1,39 @@
+import { useState } from 'react';
 import Link from 'next/link';
-import { Settings, User, Shield, Bell, Cog, Database, Key, Globe } from 'lucide-react';
+import { Settings, User, Shield, Bell, Cog, Database, Key, Globe, Lock, Loader2 } from 'lucide-react';
+import { useAdmin } from '../hooks/useAdmin';
 
 export default function SettingsPage() {
+  const admin = useAdmin();
+  const [pwForm, setPwForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [pwLoading, setPwLoading] = useState(false);
+  const [pwMsg, setPwMsg] = useState({ type: '', text: '' });
+
+  const handlePasswordChange = async (e) => {
+    e.preventDefault();
+    setPwMsg({ type: '', text: '' });
+    if (pwForm.newPassword !== pwForm.confirmPassword) {
+      setPwMsg({ type: 'error', text: 'New passwords do not match' });
+      return;
+    }
+    setPwLoading(true);
+    try {
+      const token = localStorage.getItem('admin_token');
+      const res = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ currentPassword: pwForm.currentPassword, newPassword: pwForm.newPassword }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setPwMsg({ type: 'success', text: 'Password changed successfully' });
+        setPwForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      } else {
+        setPwMsg({ type: 'error', text: data.error || 'Failed to change password' });
+      }
+    } catch { setPwMsg({ type: 'error', text: 'Network error' }); }
+    finally { setPwLoading(false); }
+  };
   const settingSections = [
     {
       title: 'Admin Profile',
@@ -166,6 +198,55 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+
+      {/* Change Password */}
+      <div className="mt-8 bg-white shadow rounded-lg">
+        <div className="px-4 py-5 sm:p-6">
+          <h3 className="text-lg leading-6 font-medium text-gray-900 mb-1 flex items-center">
+            <Lock className="h-5 w-5 mr-2 text-gray-500" /> Change Password
+          </h3>
+          <p className="text-sm text-gray-500 mb-4">Update your admin password. You must know your current password.</p>
+          <form onSubmit={handlePasswordChange} className="grid grid-cols-1 gap-4 sm:grid-cols-3 max-w-2xl">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
+              <input type="password" required value={pwForm.currentPassword} onChange={(e) => setPwForm({ ...pwForm, currentPassword: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+              <input type="password" required minLength={8} value={pwForm.newPassword} onChange={(e) => setPwForm({ ...pwForm, newPassword: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
+              <input type="password" required minLength={8} value={pwForm.confirmPassword} onChange={(e) => setPwForm({ ...pwForm, confirmPassword: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md" />
+            </div>
+            <div className="sm:col-span-3 flex items-center gap-4">
+              <button type="submit" disabled={pwLoading} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center">
+                {pwLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null} Change Password
+              </button>
+              {pwMsg.text && <span className={`text-sm ${pwMsg.type === 'error' ? 'text-red-600' : 'text-green-600'}`}>{pwMsg.text}</span>}
+            </div>
+          </form>
+        </div>
+      </div>
+
+      {/* Session Info */}
+      {admin && (
+        <div className="mt-8 bg-white shadow rounded-lg">
+          <div className="px-4 py-5 sm:p-6">
+            <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">Current Session</h3>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 text-sm">
+              <div><span className="text-gray-500">Logged in as:</span> <span className="font-medium">{admin.name}</span></div>
+              <div><span className="text-gray-500">Email:</span> <span className="font-medium">{admin.email}</span></div>
+              <div><span className="text-gray-500">Role:</span> <span className="font-medium capitalize">{admin.role?.replace('_', ' ')}</span></div>
+            </div>
+            <div className="mt-4">
+              <button onClick={() => { localStorage.removeItem('admin_token'); window.location.href = '/login'; }} className="px-4 py-2 border border-red-300 text-red-600 rounded-md hover:bg-red-50">
+                Force Logout (End Session)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Back to Dashboard */}
       <div className="mt-8">
