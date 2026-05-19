@@ -45,8 +45,10 @@ const navGroups = [
     items: [
       { name: 'AI Agent Dashboard', href: '/ai-agents', icon: Bot },
       { name: 'AI Conversations', href: '/ai-agents/conversations', icon: MessageSquare },
+      { name: 'AI Knowledge Base', href: '/ai-agents/knowledge-base', icon: Bot },
       { name: 'AI Kill Switch', href: '/ai-agents/kill-switch', icon: Shield },
       { name: 'Voice Translation', href: '/voice-translation', icon: Globe },
+      { name: 'Voice Controls', href: '/voice-controls', icon: Settings },
     ]
   },
   {
@@ -55,6 +57,7 @@ const navGroups = [
       { name: 'Verification Queue', href: '/avs-engine', icon: UserCheck },
       { name: 'Badge Management', href: '/avs-engine/badges', icon: Shield },
       { name: 'Weight Tuning', href: '/avs-engine/weights', icon: Settings },
+      { name: 'Audit Trail', href: '/avs-engine/audit-trail', icon: BarChart3 },
     ]
   },
   {
@@ -69,9 +72,10 @@ const navGroups = [
     label: 'Configuration',
     items: [
       { name: 'Feature Flags', href: '/feature-flags', icon: Settings },
+      { name: 'Analytics', href: '/analytics', icon: BarChart3 },
       { name: 'Security', href: '/security', icon: Shield },
       { name: 'Admin Users', href: '/admin-users', icon: Users },
-      { name: 'Activity Logs', href: '/admin-activity-logs', icon: BarChart3 },
+      { name: 'Audit Logs', href: '/admin-activity-logs', icon: BarChart3 },
       { name: 'Settings', href: '/settings', icon: Settings },
     ]
   },
