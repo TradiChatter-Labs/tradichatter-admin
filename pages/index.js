@@ -30,7 +30,7 @@ export default function Dashboard() {
       description: 'Manage sellers, orders, payments, escrow, subscriptions',
       icon: Store,
       color: 'bg-blue-500',
-      href: '/business-section',
+      href: '/businesses',
       features: ['Business Management', 'Orders & Escrow', 'Subscriptions', 'KYC', 'Payments']
     },
     {
@@ -38,7 +38,7 @@ export default function Dashboard() {
       description: 'Manage buyers, support, reviews, chat moderation',
       icon: Users,
       color: 'bg-green-500',
-      href: '/customer-section',
+      href: '/users',
       features: ['User Management', 'Customer Support', 'Chat Moderation', 'Call Management']
     },
     {
@@ -86,8 +86,8 @@ export default function Dashboard() {
       description: 'Feature flags, monitoring, maintenance, security',
       icon: Settings,
       color: 'bg-gray-600',
-      href: '/system-configuration',
-      features: ['Feature Flags', 'System Monitoring', 'Maintenance Mode', 'Security Audit']
+      href: '/feature-flags',
+      features: ['Feature Flags', 'System Monitoring', 'Maintenance Mode', 'Security']
     },
   ];
 

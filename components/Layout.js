@@ -61,29 +61,42 @@ const navGroups = [
     ]
   },
   {
-    label: 'Marketing & Affiliates',
+    label: 'Affiliates',
     items: [
-      { name: 'Affiliates', href: '/affiliate-management', icon: DollarSign },
+      { name: 'Affiliate Hub', href: '/affiliate-section', icon: DollarSign },
+      { name: 'Management', href: '/affiliate-management', icon: Users },
+      { name: 'Approvals', href: '/affiliate-approvals', icon: UserCheck },
+      { name: 'Analytics', href: '/affiliate-analytics', icon: BarChart3 },
+      { name: 'Leaderboard', href: '/affiliate-leaderboard', icon: Activity },
+      { name: 'Payouts', href: '/affiliate-payouts', icon: CreditCard },
+      { name: 'Commissions', href: '/commission-tracking', icon: DollarSign },
+      { name: 'Withdrawals', href: '/withdrawals', icon: CreditCard },
+    ]
+  },
+  {
+    label: 'Marketing',
+    items: [
       { name: 'Advertising', href: '/advertising-management', icon: BarChart3 },
       { name: 'Notifications', href: '/notifications', icon: Bell },
+      { name: 'Broadcasts', href: '/broadcasts', icon: Bell },
     ]
   },
   {
     label: 'Configuration',
     items: [
       { name: 'Feature Flags', href: '/feature-flags', icon: Settings },
-      { name: 'Analytics', href: '/analytics', icon: BarChart3 },
-      { name: 'Security', href: '/security', icon: Shield },
+      { name: 'Financial', href: '/financial', icon: DollarSign },
+      { name: 'Security', href: '/security-management', icon: Shield },
       { name: 'Admin Users', href: '/admin-users', icon: Users },
       { name: 'Audit Logs', href: '/admin-activity-logs', icon: BarChart3 },
+      { name: 'Maintenance', href: '/maintenance-mode', icon: Settings },
       { name: 'Settings', href: '/settings', icon: Settings },
     ]
   },
 ];
 
-function NavGroup({ group, router, collapsed }) {
+function NavGroup({ group, router }) {
   const [open, setOpen] = useState(true);
-  const isActive = group.items.some(item => router.pathname === item.href || router.pathname.startsWith(item.href + '/'));
 
   return (
     <div className="mb-2">
@@ -152,7 +165,7 @@ export default function Layout({ children }) {
         ))}
       </div>
       <div className="px-4 py-3 border-t border-gray-200 text-xs text-gray-400">
-        Admin v2.0 — All Systems
+        Admin v2.1 — Streamlined
       </div>
     </div>
   );

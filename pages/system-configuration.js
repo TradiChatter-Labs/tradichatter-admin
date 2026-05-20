@@ -12,14 +12,6 @@ export default function SystemConfiguration() {
       status: 'Active'
     },
     {
-      title: 'App Configuration',
-      description: 'Manage application settings and parameters',
-      icon: Cog,
-      color: 'bg-green-500',
-      href: '/app-configuration',
-      status: 'Active'
-    },
-    {
       title: 'Notification Templates',
       description: 'Configure email and push notification templates',
       icon: Bell,
@@ -34,6 +26,14 @@ export default function SystemConfiguration() {
       color: 'bg-orange-500',
       href: '/maintenance-mode',
       status: 'Inactive'
+    },
+    {
+      title: 'Settings',
+      description: 'General platform settings and configuration',
+      icon: Cog,
+      color: 'bg-green-500',
+      href: '/settings',
+      status: 'Active'
     }
   ];
 

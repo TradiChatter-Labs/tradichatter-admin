@@ -44,35 +44,11 @@ export default function BusinessSection() {
       implemented: true
     },
     {
-      title: 'Business Analytics',
-      description: 'View business performance and revenue analytics',
-      icon: BarChart3,
-      href: '/business-analytics',
-      color: 'bg-indigo-500',
-      implemented: true
-    },
-    {
-      title: 'Marketing Management',
-      description: 'Oversee marketing campaigns and promotions',
-      icon: MessageSquare,
-      href: '/marketing-management',
-      color: 'bg-pink-500',
-      implemented: true
-    },
-    {
       title: 'Team Management',
       description: 'Manage business teams and permissions',
       icon: Users,
       href: '/team-management',
       color: 'bg-teal-500',
-      implemented: true
-    },
-    {
-      title: 'Delivery Management',
-      description: 'Manage delivery services and logistics',
-      icon: Package,
-      href: '/delivery-management',
-      color: 'bg-orange-500',
       implemented: true
     },
     {

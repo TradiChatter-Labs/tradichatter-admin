@@ -20,14 +20,6 @@ export default function CustomerSection() {
       implemented: true
     },
     {
-      title: 'Customer Analytics',
-      description: 'Analyze customer behavior and engagement metrics',
-      icon: BarChart3,
-      href: '/customer-analytics',
-      color: 'bg-purple-500',
-      implemented: true
-    },
-    {
       title: 'Reviews Management',
       description: 'Manage customer reviews and ratings',
       icon: Star,
@@ -41,22 +33,6 @@ export default function CustomerSection() {
       icon: Headphones,
       href: '/customer-support',
       color: 'bg-red-500',
-      implemented: true
-    },
-    {
-      title: 'Customer Segmentation',
-      description: 'Segment customers for targeted marketing',
-      icon: UserCheck,
-      href: '/customer-segmentation',
-      color: 'bg-indigo-500',
-      implemented: true
-    },
-    {
-      title: 'Account Settings',
-      description: 'Manage customer account preferences and settings',
-      icon: Settings,
-      href: '/customer-settings',
-      color: 'bg-gray-500',
       implemented: true
     }
   ];

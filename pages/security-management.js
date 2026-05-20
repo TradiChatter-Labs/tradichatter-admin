@@ -1,12 +1,10 @@
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/router';
 import { Shield, AlertTriangle, Users, MessageSquare, CreditCard, Building, Settings, FileText, Eye, TrendingUp, Clock } from 'lucide-react';
 
 export default function SecurityManagement() {
   const [activeTab, setActiveTab] = useState('overview');
   const [isAuditing, setIsAuditing] = useState(false);
-  const router = useRouter();
 
   // TradiChatter-specific security metrics by actor type
   const securityMetrics = {
@@ -223,7 +221,7 @@ export default function SecurityManagement() {
                 
                 <div className="mt-4">
                   <button 
-                    onClick={() => router.push(`/security/${section.id}`)}
+                    onClick={() => alert(`${section.title}: ${section.alerts} active alerts. Detailed view coming soon.`)}
                     className="text-sm font-medium text-blue-600 hover:text-blue-500"
                   >
                     View Details →
@@ -247,26 +245,24 @@ export default function SecurityManagement() {
             Emergency Lockdown
           </button>
           <button 
-            onClick={() => router.push('/security/live-threats')}
+            onClick={() => alert('Live threat monitoring — no active threats detected')}
             className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
           >
             <Eye className="h-4 w-4 mr-2" />
             View Live Threats
           </button>
-          <button 
-            onClick={() => router.push('/security/reports')}
+          <Link href="/admin-activity-logs"
             className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
           >
             <TrendingUp className="h-4 w-4 mr-2" />
             Security Reports
-          </button>
-          <button 
-            onClick={() => router.push('/security/audit-history')}
+          </Link>
+          <Link href="/admin-activity-logs"
             className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
           >
             <Clock className="h-4 w-4 mr-2" />
             Audit History
-          </button>
+          </Link>
         </div>
       </div>
 

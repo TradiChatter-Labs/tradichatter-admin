@@ -9,7 +9,7 @@ export default async function handler(req, res) {
     if (search) params.set('search', search);
 
     const result = await callService('sourceHub', `/api/admin/suppliers?${params}`);
-    if (!result.ok) return res.status(result.status || 502).json({ error: result.error || 'SourceHub unavailable' });
+    if (!result.ok) return res.json({ success: true, suppliers: [], total: 0, warning: 'SourceHub service unavailable' });
     return res.json({ success: true, ...result.data });
   }
 
@@ -22,7 +22,7 @@ export default async function handler(req, res) {
       body: { reason },
     });
 
-    if (!result.ok) return res.status(result.status || 502).json({ error: result.error || 'Action failed' });
+    if (!result.ok) return res.status(502).json({ error: result.error || 'SourceHub service unavailable for this action' });
 
     const adminId = req.headers['x-admin-id'] || 'unknown';
     await logAdminAction({

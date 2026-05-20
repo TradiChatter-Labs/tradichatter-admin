@@ -7,7 +7,7 @@ export default async function handler(req, res) {
     if (status) params.set('status', status);
 
     const result = await callService('sourceHub', `/api/admin/orders?${params}`);
-    if (!result.ok) return res.status(result.status || 502).json({ error: result.error || 'SourceHub unavailable' });
+    if (!result.ok) return res.json({ success: true, orders: [], total: 0, warning: 'SourceHub service unavailable' });
     return res.json({ success: true, ...result.data });
   }
 

@@ -9,6 +9,7 @@ export default function SourceHubSuppliers() {
   const [search, setSearch] = useState('');
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [serviceOffline, setServiceOffline] = useState(false);
 
   useEffect(() => { fetchSuppliers(); }, [filter, page]);
 
@@ -23,6 +24,7 @@ export default function SourceHubSuppliers() {
       if (json.success) {
         setSuppliers(json.suppliers || []);
         setTotal(json.total || 0);
+        setServiceOffline(!!json.warning);
       }
     } catch (err) {
       console.error('Fetch suppliers error:', err);
@@ -81,6 +83,17 @@ export default function SourceHubSuppliers() {
         <h1 className="text-2xl font-bold text-gray-900">SourceHub — Supplier Management</h1>
         <p className="mt-1 text-sm text-gray-600">Manage B2B suppliers, verification status, and trust scores.</p>
       </div>
+
+      {/* Service Offline Banner */}
+      {serviceOffline && (
+        <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-center">
+          <AlertTriangle className="h-5 w-5 text-yellow-600 mr-3 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-yellow-800">SourceHub service is offline</p>
+            <p className="text-xs text-yellow-600">The SourceHub microservice (port 8300) is not running. Data will appear once it's started.</p>
+          </div>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">

@@ -4,7 +4,7 @@ import { logAdminAction } from '../../../lib/supabaseAdmin';
 export default async function handler(req, res) {
   if (req.method === 'GET') {
     const result = await callService('sourceHub', '/api/admin/treasury');
-    if (!result.ok) return res.status(result.status || 502).json({ error: result.error || 'SourceHub unavailable' });
+    if (!result.ok) return res.json({ success: true, platform_balance: 0, escrow_held: 0, total_payouts: 0, fees_collected: 0, pending_payouts: [], fee_structure: {}, warning: 'SourceHub service unavailable' });
     return res.json({ success: true, ...result.data });
   }
 
@@ -17,7 +17,7 @@ export default async function handler(req, res) {
       body: { supplier_id, amount, reason },
     });
 
-    if (!result.ok) return res.status(result.status || 502).json({ error: result.error || 'Action failed' });
+    if (!result.ok) return res.status(502).json({ error: result.error || 'SourceHub service unavailable for this action' });
 
     const adminId = req.headers['x-admin-id'] || 'unknown';
     await logAdminAction({

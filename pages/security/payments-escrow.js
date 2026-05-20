@@ -1,1 +1,0 @@
-export { PaymentsEscrowSecurity as default } from './admin-security';
