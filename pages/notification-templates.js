@@ -1,405 +1,302 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
-import { Mail, MessageSquare, Bell, Eye, Edit, Save, X, Plus, ArrowLeft } from 'lucide-react';
+import { Mail, Eye, Edit, Save, X, Plus, ArrowLeft, Trash2, Send, Code } from 'lucide-react';
+import { getEmailTemplates, createEmailTemplate, updateEmailTemplate, deleteEmailTemplate, previewEmailTemplate, sendEmail } from '@/lib/serviceConnector';
 
 export default function NotificationTemplates() {
   const router = useRouter();
-  const [templates, setTemplates] = useState([
-    {
-      id: 1,
-      name: 'Welcome Email',
-      type: 'email',
-      category: 'user_onboarding',
-      subject: 'Welcome to TradiChatter!',
-      content: 'Welcome {{user_name}}! Your account has been created successfully.',
-      variables: ['user_name', 'app_name'],
-      status: 'active'
-    },
-    {
-      id: 2,
-      name: 'Business Approved',
-      type: 'push',
-      category: 'business_management',
-      subject: 'Business Approved',
-      content: 'Congratulations! Your business {{business_name}} has been approved.',
-      variables: ['business_name', 'approval_date'],
-      status: 'active'
-    },
-    {
-      id: 3,
-      name: 'Payment Received',
-      type: 'sms',
-      category: 'payments',
-      subject: 'Payment Confirmation',
-      content: 'Payment of ₦{{amount}} received for {{service}}.',
-      variables: ['amount', 'service', 'transaction_id'],
-      status: 'active'
-    },
-    {
-      id: 4,
-      name: 'Order Shipped',
-      type: 'push',
-      category: 'orders',
-      subject: 'Order Shipped',
-      content: 'Your order #{{order_id}} has been shipped and is on its way!',
-      variables: ['order_id', 'tracking_number'],
-      status: 'active'
-    }
-  ]);
-
+  const [templates, setTemplates] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [editingTemplate, setEditingTemplate] = useState(null);
+  const [previewHtml, setPreviewHtml] = useState('');
   const [previewMode, setPreviewMode] = useState(false);
-  const [activeTab, setActiveTab] = useState('templates');
+  const [sendTestModal, setSendTestModal] = useState(false);
+  const [testEmail, setTestEmail] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [brandFilter, setBrandFilter] = useState('');
+  const [error, setError] = useState('');
 
-  const templateTypes = [
-    { value: 'email', label: 'Email', icon: Mail },
-    { value: 'push', label: 'Push Notification', icon: Bell },
-    { value: 'sms', label: 'SMS', icon: MessageSquare }
-  ];
+  const fetchTemplates = useCallback(async () => {
+    setLoading(true);
+    const res = await getEmailTemplates(brandFilter || undefined);
+    if (res.ok) setTemplates(res.data.templates || []);
+    setLoading(false);
+  }, [brandFilter]);
 
-  const categories = [
-    'user_onboarding',
-    'business_management', 
-    'payments',
-    'orders',
-    'reviews',
-    'system_alerts',
-    'marketing'
-  ];
+  useEffect(() => { fetchTemplates(); }, [fetchTemplates]);
 
-  const availableVariables = [
-    'user_name', 'business_name', 'amount', 'service', 'app_name', 
-    'approval_date', 'transaction_id', 'order_id', 'tracking_number',
-    'review_rating', 'product_name', 'customer_name'
-  ];
+  const handleCreate = () => {
+    setEditingTemplate({
+      brand: 'tradichatter',
+      name: '',
+      subject: '',
+      html_body: '',
+      variables: [],
+    });
+    setPreviewMode(false);
+    setPreviewHtml('');
+  };
 
   const handleEdit = (template) => {
     setEditingTemplate({ ...template });
     setPreviewMode(false);
+    setPreviewHtml('');
   };
 
-  const handleSave = () => {
-    if (editingTemplate.id) {
-      setTemplates(templates.map(t => t.id === editingTemplate.id ? editingTemplate : t));
-    } else {
-      setTemplates([...templates, { ...editingTemplate, id: Date.now() }]);
+  const handleSave = async () => {
+    if (!editingTemplate.name || !editingTemplate.subject || !editingTemplate.html_body) {
+      setError('Name, subject, and HTML body are required');
+      return;
     }
-    setEditingTemplate(null);
-    alert('Template saved successfully!');
+    setSaving(true);
+    setError('');
+
+    const payload = {
+      brand: editingTemplate.brand,
+      name: editingTemplate.name,
+      subject: editingTemplate.subject,
+      html_body: editingTemplate.html_body,
+      variables: editingTemplate.variables || [],
+    };
+
+    let res;
+    if (editingTemplate.id) {
+      res = await updateEmailTemplate(editingTemplate.id, payload);
+    } else {
+      res = await createEmailTemplate(payload);
+    }
+
+    setSaving(false);
+    if (res.ok) {
+      setEditingTemplate(null);
+      fetchTemplates();
+    } else {
+      setError(res.data?.detail || 'Failed to save template');
+    }
   };
 
-  const handlePreview = (template) => {
-    setEditingTemplate(template);
-    setPreviewMode(true);
+  const handleDelete = async (id) => {
+    if (!confirm('Delete this template?')) return;
+    const res = await deleteEmailTemplate(id);
+    if (res.ok) fetchTemplates();
   };
 
-  const renderPreview = () => {
-    if (!editingTemplate) return null;
-
-    let previewContent = editingTemplate.content;
-    editingTemplate.variables?.forEach(variable => {
-      previewContent = previewContent.replace(`{{${variable}}}`, `[${variable.toUpperCase()}]`);
+  const handlePreview = async () => {
+    if (!editingTemplate.html_body) return;
+    const res = await previewEmailTemplate({
+      brand: editingTemplate.brand,
+      html_body: editingTemplate.html_body,
+      variables: Object.fromEntries((editingTemplate.variables || []).map(v => [v, `[${v.toUpperCase()}]`])),
     });
+    if (res.ok && res.data.success) {
+      setPreviewHtml(res.data.html);
+      setPreviewMode(true);
+    } else {
+      setError(res.data?.error || 'Preview failed');
+    }
+  };
 
-    return (
-      <div className="border rounded-lg p-4 bg-gray-50">
-        <h4 className="font-medium mb-2">Preview</h4>
-        {editingTemplate.type === 'email' && (
-          <div className="bg-white border rounded p-3">
-            <div className="text-sm text-gray-600 mb-1">Subject: {editingTemplate.subject}</div>
-            <div className="text-sm">{previewContent}</div>
-          </div>
-        )}
-        {editingTemplate.type === 'push' && (
-          <div className="bg-blue-50 border border-blue-200 rounded p-3 max-w-sm">
-            <div className="font-medium text-sm">{editingTemplate.subject}</div>
-            <div className="text-sm text-gray-700">{previewContent}</div>
-          </div>
-        )}
-        {editingTemplate.type === 'sms' && (
-          <div className="bg-green-50 border border-green-200 rounded p-3 max-w-sm">
-            <div className="text-sm font-mono">{previewContent}</div>
-          </div>
-        )}
-      </div>
-    );
+  const handleSendTest = async () => {
+    if (!testEmail || !editingTemplate) return;
+    setSaving(true);
+    const res = await sendEmail({
+      brand: editingTemplate.brand,
+      to: testEmail,
+      subject: `[TEST] ${editingTemplate.subject}`,
+      html: editingTemplate.html_body,
+      variables: Object.fromEntries((editingTemplate.variables || []).map(v => [v, `[${v.toUpperCase()}]`])),
+      priority: 'individual',
+    });
+    setSaving(false);
+    setSendTestModal(false);
+    if (res.ok) alert('Test email sent!');
+    else alert('Failed to send test email');
+  };
+
+  const addVariable = () => {
+    const name = prompt('Variable name (e.g. user_name):');
+    if (name && !editingTemplate.variables.includes(name)) {
+      setEditingTemplate({ ...editingTemplate, variables: [...editingTemplate.variables, name] });
+    }
   };
 
   return (
     <div className="p-6">
       <div className="mb-6">
         <div className="flex items-center mb-4">
-          <button
-            onClick={() => router.push('/system-configuration')}
-            className="flex items-center px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to System Configuration
+          <button onClick={() => router.push('/system-configuration')} className="flex items-center px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md">
+            <ArrowLeft className="h-4 w-4 mr-2" /> Back to System Configuration
           </button>
         </div>
         <h1 className="text-2xl font-bold text-gray-900 flex items-center">
-          <Mail className="mr-3 h-8 w-8" />
-          Notification Templates
+          <Mail className="mr-3 h-8 w-8" /> Email Templates
         </h1>
-        <p className="mt-1 text-sm text-gray-600">
-          Manage system notification templates for emails, push notifications, and SMS
-        </p>
+        <p className="mt-1 text-sm text-gray-600">Manage email templates used by the Communication Service</p>
       </div>
 
-      {/* Tabs */}
+      {/* Filters + Actions */}
+      <div className="bg-white shadow rounded-lg mb-6">
+        <div className="p-4 flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <select value={brandFilter} onChange={(e) => setBrandFilter(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-md text-sm">
+              <option value="">All Brands</option>
+              <option value="tradichatter">TradiChatter</option>
+              <option value="sourcehub">SourceHub</option>
+            </select>
+            <span className="text-sm text-gray-500">{templates.length} templates</span>
+          </div>
+          <button onClick={handleCreate} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center text-sm">
+            <Plus className="mr-2 h-4 w-4" /> Create Template
+          </button>
+        </div>
+      </div>
+
+      {/* Template List */}
       <div className="bg-white shadow rounded-lg">
-        <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-8 px-6">
-            <button
-              onClick={() => setActiveTab('templates')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'templates'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              Templates
-            </button>
-            <button
-              onClick={() => setActiveTab('variables')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'variables'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              Variables
-            </button>
-          </nav>
-        </div>
-
         <div className="p-6">
-          {activeTab === 'templates' && (
-            <div>
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-medium text-gray-900">
-                  Notification Templates ({templates.length})
-                </h3>
-                <button
-                  onClick={() => setEditingTemplate({ 
-                    name: '', type: 'email', category: 'user_onboarding', 
-                    subject: '', content: '', variables: [], status: 'active' 
-                  })}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center"
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create Template
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                {templates.map((template) => {
-                  const TypeIcon = templateTypes.find(t => t.value === template.type)?.icon || Mail;
-                  return (
-                    <div key={template.id} className="border rounded-lg p-4 hover:bg-gray-50">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <TypeIcon className="h-5 w-5 text-gray-500" />
-                          <div>
-                            <h3 className="font-medium">{template.name}</h3>
-                            <p className="text-sm text-gray-600">{template.subject}</p>
-                            <div className="flex items-center space-x-2 mt-1">
-                              <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                                template.status === 'active' 
-                                  ? 'bg-green-100 text-green-800' 
-                                  : 'bg-gray-100 text-gray-800'
-                              }`}>
-                                {template.status}
-                              </span>
-                              <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                                {template.category.replace('_', ' ')}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <button
-                            onClick={() => handlePreview(template)}
-                            className="p-2 text-gray-400 hover:text-gray-600"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => handleEdit(template)}
-                            className="p-2 text-gray-400 hover:text-gray-600"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+          {loading ? (
+            <div className="text-center py-12 text-gray-500">Loading templates...</div>
+          ) : templates.length === 0 ? (
+            <div className="text-center py-12">
+              <Mail className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No templates yet</h3>
+              <p className="text-gray-600 mb-4">Create your first email template to get started.</p>
+              <button onClick={handleCreate} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Create Template</button>
             </div>
-          )}
-
-          {activeTab === 'variables' && (
-            <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Available Variables</h3>
-              <p className="text-sm text-gray-600 mb-6">
-                Use these variables in your templates by wrapping them in double curly braces: {`{{variable_name}}`}
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {availableVariables.map(variable => (
-                  <div key={variable} className="p-3 border rounded bg-gray-50">
-                    <code className="text-sm font-mono text-blue-600">{`{{${variable}}}`}</code>
-                    <p className="text-xs text-gray-500 mt-1 capitalize">
-                      {variable.replace('_', ' ')}
-                    </p>
+          ) : (
+            <div className="space-y-3">
+              {templates.map((template) => (
+                <div key={template.id} className="border rounded-lg p-4 hover:bg-gray-50 flex items-center justify-between">
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <h3 className="font-medium text-gray-900">{template.name}</h3>
+                      <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${template.brand === 'tradichatter' ? 'bg-orange-100 text-orange-800' : 'bg-blue-100 text-blue-800'}`}>
+                        {template.brand}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-1">{template.subject}</p>
+                    {template.variables?.length > 0 && (
+                      <div className="flex items-center space-x-1 mt-1">
+                        <Code className="h-3 w-3 text-gray-400" />
+                        <span className="text-xs text-gray-500">{template.variables.join(', ')}</span>
+                      </div>
+                    )}
                   </div>
-                ))}
-              </div>
+                  <div className="flex items-center space-x-2">
+                    <button onClick={() => handleEdit(template)} className="p-2 text-gray-400 hover:text-blue-600" title="Edit">
+                      <Edit className="h-4 w-4" />
+                    </button>
+                    <button onClick={() => handleDelete(template.id)} className="p-2 text-gray-400 hover:text-red-600" title="Delete">
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
       </div>
 
-      {/* Edit/Preview Modal */}
+      {/* Edit/Create Modal */}
       {editingTemplate && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">
-                {previewMode ? 'Preview Template' : editingTemplate.id ? 'Edit Template' : 'Create Template'}
-              </h2>
-              <button
-                onClick={() => setEditingTemplate(null)}
-                className="p-2 text-gray-400 hover:text-gray-600"
-              >
-                <X className="h-4 w-4" />
-              </button>
+          <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center p-6 border-b">
+              <h2 className="text-xl font-bold">{editingTemplate.id ? 'Edit Template' : 'Create Template'}</h2>
+              <button onClick={() => setEditingTemplate(null)} className="p-2 text-gray-400 hover:text-gray-600"><X className="h-5 w-5" /></button>
             </div>
 
-            {previewMode ? (
-              <div className="space-y-4">
+            <div className="p-6 space-y-4">
+              {error && <div className="p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">{error}</div>}
+
+              {previewMode ? (
                 <div>
-                  <h3 className="font-medium mb-2">{editingTemplate.name}</h3>
-                  <div className="flex space-x-2 mb-4">
-                    <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                      {editingTemplate.type}
-                    </span>
-                    <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">
-                      {editingTemplate.category.replace('_', ' ')}
-                    </span>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-medium">Preview</h3>
+                    <button onClick={() => setPreviewMode(false)} className="text-sm text-blue-600 hover:underline">← Back to editor</button>
+                  </div>
+                  <div className="border rounded-lg overflow-hidden" style={{ height: '500px' }}>
+                    <iframe srcDoc={previewHtml} className="w-full h-full" title="Email Preview" sandbox="" />
                   </div>
                 </div>
-                {renderPreview()}
-                <div className="flex justify-end space-x-2">
-                  <button
-                    onClick={() => setPreviewMode(false)}
-                    className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => setEditingTemplate(null)}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                  >
-                    Close
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Template Name</label>
-                    <input
-                      type="text"
-                      value={editingTemplate.name}
-                      onChange={(e) => setEditingTemplate({...editingTemplate, name: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Enter template name"
-                    />
+              ) : (
+                <>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Brand</label>
+                      <select value={editingTemplate.brand} onChange={(e) => setEditingTemplate({ ...editingTemplate, brand: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md">
+                        <option value="tradichatter">TradiChatter</option>
+                        <option value="sourcehub">SourceHub</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Template Name</label>
+                      <input type="text" value={editingTemplate.name} onChange={(e) => setEditingTemplate({ ...editingTemplate, name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="e.g. welcome_email" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Subject Line</label>
+                      <input type="text" value={editingTemplate.subject} onChange={(e) => setEditingTemplate({ ...editingTemplate, subject: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="Welcome to TradiChatter!" />
+                    </div>
                   </div>
+
                   <div>
-                    <label className="block text-sm font-medium mb-1">Type</label>
-                    <select
-                      value={editingTemplate.type}
-                      onChange={(e) => setEditingTemplate({...editingTemplate, type: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      {templateTypes.map(type => (
-                        <option key={type.value} value={type.value}>{type.label}</option>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-sm font-medium">HTML Body</label>
+                      <span className="text-xs text-gray-500">Use {'{{variable_name}}'} for dynamic content</span>
+                    </div>
+                    <textarea value={editingTemplate.html_body} onChange={(e) => setEditingTemplate({ ...editingTemplate, html_body: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-sm" rows={14} placeholder="<h2>Hello {{first_name}}</h2>..." />
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-sm font-medium">Variables</label>
+                      <button onClick={addVariable} className="text-xs text-blue-600 hover:underline">+ Add variable</button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {(editingTemplate.variables || []).map((v, i) => (
+                        <span key={i} className="px-2 py-1 bg-gray-100 rounded text-sm font-mono flex items-center">
+                          {`{{${v}}}`}
+                          <button onClick={() => setEditingTemplate({ ...editingTemplate, variables: editingTemplate.variables.filter((_, idx) => idx !== i) })} className="ml-1 text-gray-400 hover:text-red-500">×</button>
+                        </span>
                       ))}
-                    </select>
+                      {(!editingTemplate.variables || editingTemplate.variables.length === 0) && <span className="text-sm text-gray-400">No variables defined</span>}
+                    </div>
                   </div>
-                </div>
+                </>
+              )}
+            </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Category</label>
-                    <select
-                      value={editingTemplate.category}
-                      onChange={(e) => setEditingTemplate({...editingTemplate, category: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      {categories.map(category => (
-                        <option key={category} value={category}>
-                          {category.replace('_', ' ')}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Status</label>
-                    <select
-                      value={editingTemplate.status}
-                      onChange={(e) => setEditingTemplate({...editingTemplate, status: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="active">Active</option>
-                      <option value="inactive">Inactive</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1">Subject</label>
-                  <input
-                    type="text"
-                    value={editingTemplate.subject}
-                    onChange={(e) => setEditingTemplate({...editingTemplate, subject: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Enter subject line"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1">Content</label>
-                  <textarea
-                    value={editingTemplate.content}
-                    onChange={(e) => setEditingTemplate({...editingTemplate, content: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Enter template content. Use {{variable_name}} for dynamic content."
-                    rows={6}
-                  />
-                </div>
-
-                <div className="flex justify-end space-x-2">
-                  <button
-                    onClick={() => setPreviewMode(true)}
-                    className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 flex items-center"
-                  >
-                    <Eye className="h-4 w-4 mr-2" />
-                    Preview
+            {!previewMode && (
+              <div className="flex items-center justify-between p-6 border-t bg-gray-50">
+                <button onClick={() => setSendTestModal(true)} className="px-4 py-2 border border-gray-300 rounded-md hover:bg-white flex items-center text-sm" disabled={!editingTemplate.html_body}>
+                  <Send className="h-4 w-4 mr-2" /> Send Test
+                </button>
+                <div className="flex items-center space-x-2">
+                  <button onClick={handlePreview} className="px-4 py-2 border border-gray-300 rounded-md hover:bg-white flex items-center text-sm" disabled={!editingTemplate.html_body}>
+                    <Eye className="h-4 w-4 mr-2" /> Preview
                   </button>
-                  <button
-                    onClick={handleSave}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center"
-                  >
-                    <Save className="h-4 w-4 mr-2" />
-                    Save Template
+                  <button onClick={handleSave} disabled={saving} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center text-sm">
+                    <Save className="h-4 w-4 mr-2" /> {saving ? 'Saving...' : 'Save Template'}
                   </button>
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Send Test Modal */}
+      {sendTestModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[60]">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-bold mb-4">Send Test Email</h3>
+            <input type="email" value={testEmail} onChange={(e) => setTestEmail(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md mb-4" placeholder="your@email.com" />
+            <div className="flex justify-end space-x-2">
+              <button onClick={() => setSendTestModal(false)} className="px-4 py-2 border border-gray-300 rounded-md">Cancel</button>
+              <button onClick={handleSendTest} disabled={saving || !testEmail} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                {saving ? 'Sending...' : 'Send'}
+              </button>
+            </div>
           </div>
         </div>
       )}
