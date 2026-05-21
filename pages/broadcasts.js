@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Send, Users, Clock, CheckCircle, XCircle, Eye, Mail, ArrowLeft, X, AlertCircle } from 'lucide-react';
+import { Send, Users, Clock, CheckCircle, XCircle, Eye, Mail, ArrowLeft, X, AlertCircle, ShieldOff } from 'lucide-react';
 import { useRouter } from 'next/router';
 import { getCampaigns, getCampaign, sendCampaign, cancelCampaign, getEmailTemplates } from '@/lib/serviceConnector';
+import { callService } from '@/lib/serviceConnector';
 
 export default function Broadcasts() {
   const router = useRouter();
@@ -12,6 +13,8 @@ export default function Broadcasts() {
   const [detailCampaign, setDetailCampaign] = useState(null);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
+  const [activeTab, setActiveTab] = useState('campaigns');
+  const [suppressed, setSuppressed] = useState([]);
 
   const [form, setForm] = useState({
     name: '',
@@ -21,6 +24,7 @@ export default function Broadcasts() {
     html_body: '',
     recipients_text: '',
     scheduled_at: '',
+    drip_hours: '',
   });
 
   const fetchCampaigns = useCallback(async () => {
@@ -36,6 +40,11 @@ export default function Broadcasts() {
   }, []);
 
   useEffect(() => { fetchCampaigns(); fetchTemplates(); }, [fetchCampaigns, fetchTemplates]);
+
+  const fetchSuppressed = async () => {
+    const res = await callService('communication', '/api/preferences/suppressed');
+    if (res.ok) setSuppressed(res.data.suppressed || []);
+  };
 
   const handleTemplateSelect = (templateId) => {
     const tmpl = templates.find(t => t.id === templateId);
@@ -64,6 +73,7 @@ export default function Broadcasts() {
       html_body: form.template_id ? undefined : form.html_body,
       recipients,
       scheduled_at: form.scheduled_at || undefined,
+      drip_hours: form.drip_hours ? parseFloat(form.drip_hours) : undefined,
     };
 
     const res = await sendCampaign(payload);
@@ -71,7 +81,7 @@ export default function Broadcasts() {
 
     if (res.ok) {
       setShowComposer(false);
-      setForm({ name: '', brand: 'tradichatter', template_id: '', subject: '', html_body: '', recipients_text: '', scheduled_at: '' });
+      setForm({ name: '', brand: 'tradichatter', template_id: '', subject: '', html_body: '', recipients_text: '', scheduled_at: '', drip_hours: '' });
       fetchCampaigns();
     } else {
       setError(res.data?.detail || 'Failed to send campaign');
@@ -107,12 +117,21 @@ export default function Broadcasts() {
           <h1 className="text-2xl font-bold text-gray-900 flex items-center"><Mail className="mr-3 h-8 w-8" /> Email Campaigns</h1>
           <p className="mt-1 text-sm text-gray-600">Send targeted emails to users via the Communication Service</p>
         </div>
-        <button onClick={() => setShowComposer(true)} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center">
-          <Send className="mr-2 h-4 w-4" /> New Campaign
-        </button>
+        <div className="flex items-center space-x-2">
+          <button onClick={() => { setActiveTab('suppressed'); fetchSuppressed(); }} className={`px-3 py-2 rounded-md text-sm ${activeTab === 'suppressed' ? 'bg-gray-200' : 'hover:bg-gray-100'}`}>
+            <ShieldOff className="h-4 w-4 inline mr-1" /> Suppressed
+          </button>
+          <button onClick={() => setActiveTab('campaigns')} className={`px-3 py-2 rounded-md text-sm ${activeTab === 'campaigns' ? 'bg-gray-200' : 'hover:bg-gray-100'}`}>
+            Campaigns
+          </button>
+          <button onClick={() => setShowComposer(true)} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center">
+            <Send className="mr-2 h-4 w-4" /> New Campaign
+          </button>
+        </div>
       </div>
 
       {/* Campaign History */}
+      {activeTab === 'campaigns' && (
       <div className="bg-white shadow rounded-lg">
         <div className="p-6">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Campaign History</h3>
@@ -156,8 +175,32 @@ export default function Broadcasts() {
           )}
         </div>
       </div>
+      )}
 
-      {/* Composer Modal */}
+      {/* Suppressed Emails Tab */}
+      {activeTab === 'suppressed' && (
+        <div className="bg-white shadow rounded-lg">
+          <div className="p-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center"><ShieldOff className="h-5 w-5 mr-2" /> Suppressed Emails</h3>
+            <p className="text-sm text-gray-600 mb-4">Emails that are blocked from receiving campaigns (unsubscribed or hard-bounced).</p>
+            {suppressed.length === 0 ? (
+              <p className="text-sm text-gray-500 py-8 text-center">No suppressed emails.</p>
+            ) : (
+              <div className="space-y-2">
+                {suppressed.map((s, i) => (
+                  <div key={i} className="flex items-center justify-between p-3 border rounded">
+                    <div>
+                      <span className="font-mono text-sm">{s.email}</span>
+                      <span className={`ml-2 px-2 py-0.5 text-xs rounded-full ${s.reason === 'unsubscribed' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}`}>{s.reason}</span>
+                    </div>
+                    <span className="text-xs text-gray-500">{new Date(s.created_at).toLocaleDateString()}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       {showComposer && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -185,16 +228,21 @@ export default function Broadcasts() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Template (optional)</label>
-                  <select value={form.template_id} onChange={(e) => handleTemplateSelect(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md">
-                    <option value="">— Custom HTML —</option>
-                    {templates.map(t => <option key={t.id} value={t.id}>{t.name} ({t.brand})</option>)}
-                  </select>
-                </div>
-                <div>
                   <label className="block text-sm font-medium mb-1">Schedule (optional)</label>
                   <input type="datetime-local" value={form.scheduled_at} onChange={(e) => setForm({ ...form, scheduled_at: e.target.value ? new Date(e.target.value).toISOString() : '' })} className="w-full px-3 py-2 border border-gray-300 rounded-md" />
                 </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Drip over hours (optional)</label>
+                  <input type="number" step="0.5" min="0" value={form.drip_hours} onChange={(e) => setForm({ ...form, drip_hours: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="e.g. 2 (spread over 2 hours)" />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Template (optional)</label>
+                <select value={form.template_id} onChange={(e) => handleTemplateSelect(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md">
+                  <option value="">— Custom HTML —</option>
+                  {templates.map(t => <option key={t.id} value={t.id}>{t.name} ({t.brand})</option>)}
+                </select>
               </div>
 
               <div>
@@ -247,7 +295,7 @@ export default function Broadcasts() {
               {detailCampaign.recipient_stats && (
                 <div>
                   <h4 className="text-sm font-medium text-gray-700 mb-2">Delivery Stats</h4>
-                  <div className="grid grid-cols-4 gap-3">
+                  <div className="grid grid-cols-5 gap-2">
                     <div className="text-center p-3 bg-gray-50 rounded">
                       <div className="text-lg font-bold">{detailCampaign.total_recipients}</div>
                       <div className="text-xs text-gray-500">Total</div>
@@ -263,6 +311,10 @@ export default function Broadcasts() {
                     <div className="text-center p-3 bg-red-50 rounded">
                       <div className="text-lg font-bold text-red-700">{detailCampaign.recipient_stats.failed}</div>
                       <div className="text-xs text-gray-500">Failed</div>
+                    </div>
+                    <div className="text-center p-3 bg-purple-50 rounded">
+                      <div className="text-lg font-bold text-purple-700">{detailCampaign.recipient_stats.bounced || 0}</div>
+                      <div className="text-xs text-gray-500">Bounced</div>
                     </div>
                   </div>
                 </div>
