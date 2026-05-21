@@ -1,10 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/router';
-import { Users, Filter, Save, Trash2, ArrowLeft, Send, X, RefreshCw } from 'lucide-react';
+import { Users, Filter, Save, Trash2, Send, X, RefreshCw } from 'lucide-react';
 import { resolveSegment, getSegments, createSegment, deleteSegment, sendCampaign, getEmailTemplates } from '@/lib/serviceConnector';
 
 export default function EmailSegments() {
-  const router = useRouter();
   const [segments, setSegments] = useState([]);
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -101,12 +99,6 @@ export default function EmailSegments() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center mb-4">
-        <button onClick={() => router.push('/broadcasts')} className="flex items-center px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md">
-          <ArrowLeft className="h-4 w-4 mr-2" /> Back to Campaigns
-        </button>
-      </div>
-
       <div>
         <h1 className="text-2xl font-bold text-gray-900 flex items-center"><Users className="mr-3 h-8 w-8" /> Email Segments</h1>
         <p className="mt-1 text-sm text-gray-600">Build audience segments and send targeted campaigns</p>

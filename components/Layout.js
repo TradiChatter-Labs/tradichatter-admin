@@ -4,7 +4,7 @@ import { useRouter } from 'next/router';
 import {
   Users, Store, ShoppingCart, CreditCard, BarChart3, Settings, Shield,
   MessageSquare, Bell, UserCheck, Package, Menu, X, DollarSign, LogOut,
-  Activity, Bot, Globe, Truck, ChevronDown, ChevronRight
+  Activity, Bot, Globe, Truck, ChevronDown, ChevronRight, Mail, Send, Filter
 } from 'lucide-react';
 
 const navGroups = [
@@ -74,11 +74,12 @@ const navGroups = [
     ]
   },
   {
-    label: 'Marketing',
+    label: 'Marketing & Comms',
     items: [
       { name: 'Advertising', href: '/advertising-management', icon: BarChart3 },
-      { name: 'Notifications', href: '/notifications', icon: Bell },
-      { name: 'Broadcasts', href: '/broadcasts', icon: Bell },
+      { name: 'Email Templates', href: '/notification-templates', icon: Mail },
+      { name: 'Email Campaigns', href: '/broadcasts', icon: Send },
+      { name: 'Email Segments', href: '/email-segments', icon: Filter },
     ]
   },
   {
@@ -88,6 +89,7 @@ const navGroups = [
       { name: 'Financial', href: '/financial', icon: DollarSign },
       { name: 'Security', href: '/security-management', icon: Shield },
       { name: 'Admin Users', href: '/admin-users', icon: Users },
+      { name: 'Admin Alerts', href: '/notifications', icon: Bell },
       { name: 'Audit Logs', href: '/admin-activity-logs', icon: BarChart3 },
       { name: 'Maintenance', href: '/maintenance-mode', icon: Settings },
       { name: 'Settings', href: '/settings', icon: Settings },

@@ -1,10 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/router';
-import { Mail, Eye, Edit, Save, X, Plus, ArrowLeft, Trash2, Send, Code } from 'lucide-react';
+import { Mail, Eye, Edit, Save, X, Plus, Trash2, Send, Code } from 'lucide-react';
 import { getEmailTemplates, createEmailTemplate, updateEmailTemplate, deleteEmailTemplate, previewEmailTemplate, sendEmail } from '@/lib/serviceConnector';
 
 export default function NotificationTemplates() {
-  const router = useRouter();
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingTemplate, setEditingTemplate] = useState(null);
@@ -123,11 +121,6 @@ export default function NotificationTemplates() {
   return (
     <div className="p-6">
       <div className="mb-6">
-        <div className="flex items-center mb-4">
-          <button onClick={() => router.push('/system-configuration')} className="flex items-center px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md">
-            <ArrowLeft className="h-4 w-4 mr-2" /> Back to System Configuration
-          </button>
-        </div>
         <h1 className="text-2xl font-bold text-gray-900 flex items-center">
           <Mail className="mr-3 h-8 w-8" /> Email Templates
         </h1>
