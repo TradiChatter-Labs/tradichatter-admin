@@ -4,7 +4,8 @@ import { useRouter } from 'next/router';
 import {
   Users, Store, ShoppingCart, CreditCard, BarChart3, Settings, Shield,
   MessageSquare, Bell, UserCheck, Package, Menu, X, DollarSign, LogOut,
-  Activity, Bot, Globe, Truck, ChevronDown, ChevronRight, Mail, Send, Filter
+  Activity, Bot, Globe, Truck, ChevronDown, ChevronRight, Mail, Send, Filter,
+  AlertTriangle, Star, FileText, Smartphone, Database, UserX
 } from 'lucide-react';
 
 const navGroups = [
@@ -13,21 +14,32 @@ const navGroups = [
     items: [
       { name: 'Dashboard', href: '/', icon: BarChart3 },
       { name: 'System Monitoring', href: '/system-monitoring', icon: Activity },
+      { name: 'Error Tracking', href: '/error-management-dashboard', icon: AlertTriangle },
+      { name: 'Analytics', href: '/analytics', icon: BarChart3 },
     ]
   },
   {
-    label: 'Retail App',
+    label: 'TradiChatter App',
     items: [
       { name: 'Users', href: '/users', icon: Users },
       { name: 'Businesses', href: '/businesses', icon: Store },
       { name: 'Orders', href: '/orders', icon: ShoppingCart },
       { name: 'Escrow', href: '/escrow', icon: Shield },
       { name: 'Payments', href: '/payments', icon: CreditCard },
+      { name: 'Invoices', href: '/invoices', icon: FileText },
       { name: 'Subscriptions', href: '/subscription-management', icon: CreditCard },
       { name: 'KYC', href: '/kyc', icon: UserCheck },
       { name: 'Inventory', href: '/inventory', icon: Package },
-      { name: 'Chat Moderation', href: '/chat-moderation', icon: MessageSquare },
       { name: 'Call Management', href: '/call-management', icon: Globe },
+    ]
+  },
+  {
+    label: 'Moderation',
+    items: [
+      { name: 'Product Moderation', href: '/product-moderation', icon: Package },
+      { name: 'Reviews', href: '/reviews-management', icon: Star },
+      { name: 'Chat Moderation', href: '/chat-moderation', icon: MessageSquare },
+      { name: 'User Suspension', href: '/user-suspension', icon: UserX },
     ]
   },
   {
@@ -61,16 +73,11 @@ const navGroups = [
     ]
   },
   {
-    label: 'Affiliates',
+    label: 'Affiliates (V2)',
     items: [
-      { name: 'Affiliate Hub', href: '/affiliate-section', icon: DollarSign },
       { name: 'Management', href: '/affiliate-management', icon: Users },
-      { name: 'Approvals', href: '/affiliate-approvals', icon: UserCheck },
       { name: 'Analytics', href: '/affiliate-analytics', icon: BarChart3 },
-      { name: 'Leaderboard', href: '/affiliate-leaderboard', icon: Activity },
-      { name: 'Payouts', href: '/affiliate-payouts', icon: CreditCard },
-      { name: 'Commissions', href: '/commission-tracking', icon: DollarSign },
-      { name: 'Withdrawals', href: '/withdrawals', icon: CreditCard },
+      { name: 'Program Settings', href: '/affiliate-settings', icon: Settings },
     ]
   },
   {
@@ -80,6 +87,8 @@ const navGroups = [
       { name: 'Email Templates', href: '/notification-templates', icon: Mail },
       { name: 'Email Campaigns', href: '/broadcasts', icon: Send },
       { name: 'Email Segments', href: '/email-segments', icon: Filter },
+      { name: 'Push Notifications', href: '/push-notifications', icon: Smartphone },
+      { name: 'SMS', href: '/sms-campaigns', icon: MessageSquare },
     ]
   },
   {
@@ -89,8 +98,12 @@ const navGroups = [
       { name: 'Financial', href: '/financial', icon: DollarSign },
       { name: 'Security', href: '/security-management', icon: Shield },
       { name: 'Admin Users', href: '/admin-users', icon: Users },
+      { name: 'Team Management', href: '/team-management', icon: Users },
+      { name: 'Seller Subaccounts', href: '/seller-subaccounts', icon: Store },
       { name: 'Admin Alerts', href: '/notifications', icon: Bell },
       { name: 'Audit Logs', href: '/admin-activity-logs', icon: BarChart3 },
+      { name: 'Data Export', href: '/data-export', icon: Database },
+      { name: 'Mobile Control', href: '/mobile-control', icon: Smartphone },
       { name: 'Maintenance', href: '/maintenance-mode', icon: Settings },
       { name: 'Settings', href: '/settings', icon: Settings },
     ]
