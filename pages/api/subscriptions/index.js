@@ -1,4 +1,4 @@
-// v2 — reads from businesses table
+// v3 — reads from businesses table (source of truth)
 import { getSubscriptions, updateSubscription, logAdminAction } from '../../../lib/supabaseAdmin';
 
 export default async function handler(req, res) {
