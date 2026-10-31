@@ -3,7 +3,11 @@ import { getSubscriptions, updateSubscription, logAdminAction } from '../../../l
 export default async function handler(req, res) {
   if (req.method === 'GET') {
     const { status, page = 1, limit = 50 } = req.query;
-    const { data, total, error } = await getSubscriptions({ status, page: Number(page), limit: Number(limit) });
+    const { data, total, error } = await getSubscriptions({
+      status: status || 'all',
+      page: Number(page),
+      limit: Number(limit),
+    });
     if (error) return res.status(500).json({ error: error.message });
     return res.json({ success: true, subscriptions: data, total });
   }
@@ -14,7 +18,6 @@ export default async function handler(req, res) {
 
     const updates = { status, updated_at: new Date().toISOString() };
     if (reason) updates.admin_notes = reason;
-    if (status === 'active') updates.reactivated_at = new Date().toISOString();
 
     const { data, error } = await updateSubscription(id, updates);
     if (error) return res.status(500).json({ error: error.message });
@@ -23,7 +26,7 @@ export default async function handler(req, res) {
     await logAdminAction({
       adminId,
       action: `SUBSCRIPTION_${status.toUpperCase()}`,
-      entityType: 'subscription',
+      entityType: 'business',
       entityId: id,
       details: { status, reason },
       ip: req.headers['x-forwarded-for'] || req.socket?.remoteAddress,
