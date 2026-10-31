@@ -1,6 +1,190 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Crown, Users, DollarSign, CheckCircle, Clock, Ban, Eye, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Crown, Users, DollarSign, CheckCircle, Clock, Ban, RefreshCw, Gift } from 'lucide-react';
+
+const DURATION_PRESETS = [
+  { label: '7 days', value: 7 },
+  { label: '14 days', value: 14 },
+  { label: '30 days', value: 30 },
+  { label: '90 days', value: 90 },
+  { label: '180 days', value: 180 },
+  { label: '365 days', value: 365 },
+];
+
+function GrantModal({ target, onClose, onSuccess }) {
+  const [plan, setPlan] = useState('business');
+  const [durationDays, setDurationDays] = useState(30);
+  const [customDays, setCustomDays] = useState('');
+  const [useCustom, setUseCustom] = useState(false);
+  const [reason, setReason] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const effectiveDays = useCustom ? Number(customDays) : durationDays;
+
+  const expiryPreview = () => {
+    if (!effectiveDays || isNaN(effectiveDays)) return '—';
+    const d = new Date();
+    d.setDate(d.getDate() + effectiveDays);
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
+  const handleSubmit = async () => {
+    setError('');
+    if (!reason.trim() || reason.trim().length < 3) {
+      setError('Reason is required (min 3 characters).');
+      return;
+    }
+    if (!effectiveDays || isNaN(effectiveDays) || effectiveDays < 1 || effectiveDays > 365) {
+      setError('Duration must be between 1 and 365 days.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch('/api/subscriptions/grant', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          businessId: target.business_id,
+          businessName: target.businesses?.name || target.business_id,
+          plan,
+          durationDays: effectiveDays,
+          reason: reason.trim(),
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        setError(json.error || 'Grant failed. Please try again.');
+        return;
+      }
+      onSuccess(json);
+    } catch (err) {
+      setError('Network error: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+        {/* Header */}
+        <div className="bg-purple-600 px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Gift className="h-5 w-5 text-white" />
+            <h2 className="text-lg font-semibold text-white">Grant Subscription</h2>
+          </div>
+          <button onClick={onClose} className="text-purple-200 hover:text-white text-xl leading-none">&times;</button>
+        </div>
+
+        <div className="px-6 py-5 space-y-4">
+          {/* Business */}
+          <div>
+            <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Business</label>
+            <p className="text-sm font-semibold text-gray-900 bg-gray-50 px-3 py-2 rounded-md border border-gray-200">
+              {target.businesses?.name || target.business_id?.slice(0, 16) + '…'}
+            </p>
+          </div>
+
+          {/* Plan */}
+          <div>
+            <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Plan</label>
+            <select
+              value={plan}
+              onChange={(e) => setPlan(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              <option value="business">Business — ₦12,500/mo</option>
+              <option value="premium">Premium — ₦22,000/mo</option>
+            </select>
+          </div>
+
+          {/* Duration */}
+          <div>
+            <label className="block text-xs font-medium text-gray-500 uppercase mb-2">Duration</label>
+            <div className="grid grid-cols-3 gap-2 mb-2">
+              {DURATION_PRESETS.map((p) => (
+                <button
+                  key={p.value}
+                  onClick={() => { setDurationDays(p.value); setUseCustom(false); }}
+                  className={`px-2 py-2 text-xs rounded-md border font-medium transition-colors ${
+                    !useCustom && durationDays === p.value
+                      ? 'bg-purple-600 text-white border-purple-600'
+                      : 'bg-white text-gray-700 border-gray-300 hover:border-purple-400'
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min="1"
+                max="365"
+                placeholder="Custom days"
+                value={customDays}
+                onChange={(e) => { setCustomDays(e.target.value); setUseCustom(true); }}
+                onFocus={() => setUseCustom(true)}
+                className={`flex-1 px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 ${
+                  useCustom ? 'border-purple-500' : 'border-gray-300'
+                }`}
+              />
+              <span className="text-xs text-gray-500 whitespace-nowrap">1–365 days</span>
+            </div>
+          </div>
+
+          {/* Expiry preview */}
+          <div className="bg-purple-50 border border-purple-200 rounded-md px-3 py-2 flex justify-between items-center">
+            <span className="text-xs text-purple-700 font-medium">Expires on</span>
+            <span className="text-sm font-bold text-purple-900">{expiryPreview()}</span>
+          </div>
+
+          {/* Reason */}
+          <div>
+            <label className="block text-xs font-medium text-gray-500 uppercase mb-1">
+              Reason <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              rows={2}
+              placeholder="e.g. Compensation for downtime, partnership deal, beta tester..."
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+            />
+          </div>
+
+          {error && (
+            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">{error}</p>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3">
+          <button
+            onClick={onClose}
+            disabled={loading}
+            className="px-4 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={loading}
+            className="px-5 py-2 text-sm font-semibold text-white bg-purple-600 rounded-md hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2"
+          >
+            {loading ? (
+              <><span className="animate-spin inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full" /> Granting…</>
+            ) : (
+              <><Gift className="h-4 w-4" /> Confirm Grant</>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function SubscriptionManagement() {
   const [subscriptions, setSubscriptions] = useState([]);
@@ -8,6 +192,8 @@ export default function SubscriptionManagement() {
   const [filter, setFilter] = useState('all');
   const [total, setTotal] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
+  const [grantTarget, setGrantTarget] = useState(null);
+  const [successMsg, setSuccessMsg] = useState('');
 
   useEffect(() => { fetchSubscriptions(); }, [filter]);
 
@@ -44,6 +230,14 @@ export default function SubscriptionManagement() {
     }
   };
 
+  const handleGrantSuccess = (result) => {
+    setGrantTarget(null);
+    const expiry = new Date(result.expiresAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    setSuccessMsg(`✅ ${result.plan.charAt(0).toUpperCase() + result.plan.slice(1)} plan granted for ${result.durationDays} days — expires ${expiry}`);
+    fetchSubscriptions();
+    setTimeout(() => setSuccessMsg(''), 6000);
+  };
+
   const getStatusColor = (status) => {
     const colors = {
       active: 'bg-green-100 text-green-800',
@@ -67,10 +261,24 @@ export default function SubscriptionManagement() {
 
   return (
     <div>
+      {grantTarget && (
+        <GrantModal
+          target={grantTarget}
+          onClose={() => setGrantTarget(null)}
+          onSuccess={handleGrantSuccess}
+        />
+      )}
+
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Subscription Management</h1>
-        <p className="mt-1 text-sm text-gray-600">Monitor and manage all business subscriptions.</p>
+        <p className="mt-1 text-sm text-gray-600">Monitor, manage, and grant subscriptions to businesses.</p>
       </div>
+
+      {successMsg && (
+        <div className="mb-6 px-4 py-3 bg-green-50 border border-green-300 text-green-800 text-sm rounded-lg font-medium">
+          {successMsg}
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5 mb-8">
@@ -172,7 +380,14 @@ export default function SubscriptionManagement() {
                   <td className="px-6 py-4 text-sm font-medium text-gray-900">
                     {sub.businesses?.name || sub.business_id?.slice(0, 8)}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-700 capitalize">{sub.plan || 'premium'}</td>
+                  <td className="px-6 py-4 text-sm text-gray-700 capitalize">
+                    <span>{sub.plan || 'premium'}</span>
+                    {sub.businesses?.admin_granted_by && (
+                      <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-700 rounded-full">
+                        <Gift className="h-3 w-3" /> Admin Grant
+                      </span>
+                    )}
+                  </td>
                   <td className="px-6 py-4">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(sub.status)}`}>
                       {sub.status}
@@ -184,17 +399,35 @@ export default function SubscriptionManagement() {
                   <td className="px-6 py-4 text-sm text-gray-500">
                     {sub.end_date ? new Date(sub.end_date).toLocaleDateString() : '—'}
                   </td>
-                  <td className="px-6 py-4 text-sm space-x-2">
-                    {sub.status === 'active' && (
-                      <button onClick={() => handleStatusChange(sub.id, 'expired', 'Admin suspended')} className="text-red-600 hover:text-red-800">
-                        <Ban className="h-4 w-4 inline" />
+                  <td className="px-6 py-4 text-sm">
+                    <div className="flex items-center gap-3">
+                      {/* Grant button — always available */}
+                      <button
+                        onClick={() => setGrantTarget(sub)}
+                        title="Grant subscription"
+                        className="text-purple-600 hover:text-purple-800"
+                      >
+                        <Gift className="h-4 w-4" />
                       </button>
-                    )}
-                    {(sub.status === 'expired' || sub.status === 'cancelled') && (
-                      <button onClick={() => handleStatusChange(sub.id, 'active')} className="text-green-600 hover:text-green-800">
-                        <RefreshCw className="h-4 w-4 inline" />
-                      </button>
-                    )}
+                      {sub.status === 'active' && (
+                        <button
+                          onClick={() => handleStatusChange(sub.id, 'expired', 'Admin suspended')}
+                          title="Suspend"
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          <Ban className="h-4 w-4" />
+                        </button>
+                      )}
+                      {(sub.status === 'expired' || sub.status === 'cancelled') && (
+                        <button
+                          onClick={() => handleStatusChange(sub.id, 'active')}
+                          title="Reactivate"
+                          className="text-green-600 hover:text-green-800"
+                        >
+                          <RefreshCw className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
