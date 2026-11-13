@@ -88,7 +88,7 @@ export default function SettingsPage() {
       description: 'System backup and maintenance controls',
       icon: Database,
       color: 'bg-gray-500',
-      href: '/maintenance-mode',
+      href: '/backup-restore',
       status: 'Active'
     }
   ];

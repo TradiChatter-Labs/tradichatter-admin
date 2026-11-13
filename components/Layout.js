@@ -103,6 +103,7 @@ const navGroups = [
       { name: 'Admin Alerts', href: '/notifications', icon: Bell },
       { name: 'Audit Logs', href: '/admin-activity-logs', icon: BarChart3 },
       { name: 'Data Export', href: '/data-export', icon: Database },
+      { name: 'Backup & Restore', href: '/backup-restore', icon: Database },
       { name: 'Mobile Control', href: '/mobile-control', icon: Smartphone },
       { name: 'Maintenance', href: '/maintenance-mode', icon: Settings },
       { name: 'Settings', href: '/settings', icon: Settings },

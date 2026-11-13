@@ -1,11 +1,18 @@
-export default async function handler(req, res) {
-  const { method } = req;
+/**
+ * Admin API: /api/system/backup
+ * Proxies to AI Agent Service backup endpoints.
+ * Replaces the previous fake mock implementation.
+ */
 
-  switch (method) {
+const AI_AGENT_BASE = 'https://tradichatter-ai-agent.fly.dev';
+const INTERNAL_TOKEN = process.env.INTERNAL_API_TOKEN || 'tradichatter-internal-token-2024';
+
+export default async function handler(req, res) {
+  switch (req.method) {
     case 'GET':
-      return getBackupStatus(req, res);
+      return listBackups(req, res);
     case 'POST':
-      return createBackup(req, res);
+      return triggerBackup(req, res);
     case 'PUT':
       return restoreBackup(req, res);
     default:
@@ -13,134 +20,71 @@ export default async function handler(req, res) {
   }
 }
 
-async function getBackupStatus(req, res) {
+async function listBackups(req, res) {
   try {
-    const backupInfo = await getBackupInfo();
-    res.status(200).json({
-      success: true,
-      data: {
-        status: 'completed',
-        lastBackup: backupInfo.lastBackup.timestamp
-      }
+    const response = await fetch(`${AI_AGENT_BASE}/api/backup/list`, {
+      method: 'GET',
+      headers: { 'X-Internal-Token': INTERNAL_TOKEN },
     });
+    const data = await response.json();
+    return res.status(response.ok ? 200 : 500).json(data);
   } catch (error) {
-    console.error('Error getting backup status:', error);
-    res.status(500).json({ error: 'Failed to get backup status' });
+    console.error('[backup API] list error:', error);
+    return res.status(500).json({ success: false, error: 'Failed to fetch backup list', backups: [] });
   }
 }
 
-async function createBackup(req, res) {
+async function triggerBackup(req, res) {
   try {
-    const { type = 'full', description } = req.body;
-    
-    // Simulate backup creation
-    const backupId = `backup_${Date.now()}`;
-    const backup = {
-      id: backupId,
-      type,
-      description,
-      status: 'in_progress',
-      startTime: new Date().toISOString(),
-      size: null,
-      progress: 0
-    };
-    
-    // Simulate async backup process
-    setTimeout(async () => {
-      backup.status = 'completed';
-      backup.endTime = new Date().toISOString();
-      backup.size = Math.floor(Math.random() * 500 + 100) + 'MB';
-      backup.progress = 100;
-    }, 5000);
-    
-    res.status(202).json({
-      success: true,
-      message: 'Backup started',
-      backup
+    // Get admin ID from token for audit trail
+    const token = req.headers.authorization?.replace('Bearer ', '') || '';
+    let adminId = 'admin';
+    try {
+      const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
+      adminId = payload.id || payload.sub || 'admin';
+    } catch {
+      // token parse failed — use default
+    }
+
+    const response = await fetch(`${AI_AGENT_BASE}/api/backup/trigger-manual`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Internal-Token': INTERNAL_TOKEN,
+        'X-Admin-Id': adminId,
+      },
     });
+    const data = await response.json();
+    return res.status(response.ok ? 202 : 500).json(data);
   } catch (error) {
-    console.error('Error creating backup:', error);
-    res.status(500).json({ error: 'Failed to create backup' });
+    console.error('[backup API] trigger error:', error);
+    return res.status(500).json({ success: false, error: 'Failed to trigger backup' });
   }
 }
 
 async function restoreBackup(req, res) {
   try {
-    const { backupId } = req.body;
-    
-    if (!backupId) {
-      return res.status(400).json({ error: 'Backup ID required' });
-    }
-    
-    // Simulate restore process
-    const restore = {
-      id: `restore_${Date.now()}`,
-      backupId,
-      status: 'in_progress',
-      startTime: new Date().toISOString(),
-      progress: 0
-    };
-    
-    // Simulate async restore process
-    setTimeout(() => {
-      restore.status = 'completed';
-      restore.endTime = new Date().toISOString();
-      restore.progress = 100;
-    }, 8000);
-    
-    res.status(202).json({
-      message: 'Restore started',
-      restore
-    });
-  } catch (error) {
-    console.error('Error restoring backup:', error);
-    res.status(500).json({ error: 'Failed to restore backup' });
-  }
-}
+    const { backup_log_id, admin_id, confirmation } = req.body;
 
-async function getBackupInfo() {
-  // Mock backup data
-  return {
-    lastBackup: {
-      id: 'backup_1704067200000',
-      timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
-      size: '245MB',
-      type: 'full',
-      status: 'completed'
-    },
-    schedule: {
-      enabled: true,
-      frequency: 'daily',
-      time: '02:00',
-      retention: 30
-    },
-    storage: {
-      used: '2.1GB',
-      available: '47.9GB',
-      total: '50GB'
-    },
-    recentBackups: [
-      {
-        id: 'backup_1704067200000',
-        timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
-        size: '245MB',
-        type: 'full',
-        status: 'completed'
+    if (!backup_log_id || !admin_id) {
+      return res.status(400).json({ error: 'backup_log_id and admin_id required' });
+    }
+    if (confirmation !== 'CONFIRM') {
+      return res.status(400).json({ error: 'Type CONFIRM to proceed' });
+    }
+
+    const response = await fetch(`${AI_AGENT_BASE}/api/backup/restore`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Internal-Token': INTERNAL_TOKEN,
       },
-      {
-        id: 'backup_1703980800000',
-        timestamp: new Date(Date.now() - 30 * 60 * 60 * 1000).toISOString(),
-        size: '243MB',
-        type: 'full',
-        status: 'completed'
-      },
-      {
-        id: 'backup_1703894400000',
-        timestamp: new Date(Date.now() - 54 * 60 * 60 * 1000).toISOString(),
-        size: '241MB',
-        type: 'full',
-        status: 'completed'
-      }
-    ]
-  };
+      body: JSON.stringify({ backup_log_id, admin_id, confirmation }),
+    });
+    const data = await response.json();
+    return res.status(response.ok ? 202 : 500).json(data);
+  } catch (error) {
+    console.error('[backup API] restore error:', error);
+    return res.status(500).json({ success: false, error: 'Failed to start restore' });
+  }
 }
