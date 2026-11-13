@@ -97,7 +97,7 @@ export default function KYCPage() {
                   <td className="px-6 py-4">{k.address_verified ? <CheckCircle className="h-4 w-4 text-green-500" /> : <XCircle className="h-4 w-4 text-gray-300" />}</td>
                   <td className="px-6 py-4 text-sm font-medium">{k.trust_score || 0}</td>
                   <td className="px-6 py-4"><span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(k.verification_status)}`}>{k.verification_status}</span></td>
-                  <td className="px-6 py-4 text-sm text-gray-500">{k.submitted_at ? new Date(k.submitted_at).toLocaleDateString() : '—'}</td>
+                  <td className="px-6 py-4 text-sm text-gray-500">{k.submitted_at || k.created_at ? new Date(k.submitted_at || k.created_at).toLocaleDateString() : '—'}</td>
                   <td className="px-6 py-4 text-sm space-x-2">
                     {(k.verification_status === 'pending' || k.verification_status === 'submitted') && (
                       <>
