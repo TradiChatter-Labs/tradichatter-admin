@@ -1,91 +1,28 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Target, TrendingUp, DollarSign, Eye, CheckCircle, XCircle, Pause, Play, BarChart3, Users, AlertTriangle } from 'lucide-react';
+import { Target, TrendingUp, DollarSign, Eye, CheckCircle, XCircle, Pause, Play, Users, AlertTriangle, RefreshCw } from 'lucide-react';
 
 export default function AdvertisingManagement() {
-  const [campaigns, setCampaigns] = useState([
-    {
-      id: 'AD001',
-      businessName: 'Tech Solutions Ltd',
-      businessId: 'BUS001',
-      title: 'Premium Rice Sale - 20% Off',
-      description: 'High quality rice at discounted prices for limited time',
-      budget: 50000,
-      spent: 12500,
-      duration: 7,
-      status: 'pending_approval',
-      adType: 'sponsored_message',
-      targetAge: '25-35',
-      targetLocation: 'Lagos',
-      impressions: 0,
-      clicks: 0,
-      conversions: 0,
-      createdAt: '2024-01-20',
-      submittedAt: '2024-01-20T10:30:00Z'
-    },
-    {
-      id: 'AD002',
-      businessName: 'Fashion Hub',
-      businessId: 'BUS002',
-      title: 'New Fashion Collection Launch',
-      description: 'Trendy clothes for modern professionals',
-      budget: 75000,
-      spent: 45000,
-      duration: 14,
-      status: 'active',
-      adType: 'discovery_banner',
-      targetAge: '18-30',
-      targetLocation: 'All Nigeria',
-      impressions: 15420,
-      clicks: 892,
-      conversions: 45,
-      createdAt: '2024-01-15',
-      approvedAt: '2024-01-15T14:20:00Z'
-    },
-    {
-      id: 'AD003',
-      businessName: 'Food Corner',
-      businessId: 'BUS003',
-      title: 'Fast Food Delivery Service',
-      description: 'Quick and delicious meals delivered to your door',
-      budget: 30000,
-      spent: 30000,
-      duration: 10,
-      status: 'completed',
-      adType: 'promoted_business',
-      targetAge: 'all',
-      targetLocation: 'Abuja',
-      impressions: 8950,
-      clicks: 456,
-      conversions: 23,
-      createdAt: '2024-01-10',
-      completedAt: '2024-01-20T18:00:00Z'
-    },
-    {
-      id: 'AD004',
-      businessName: 'Electronics Store',
-      businessId: 'BUS004',
-      title: 'Smartphone Sale Event',
-      description: 'Latest smartphones at unbeatable prices',
-      budget: 100000,
-      spent: 25000,
-      duration: 21,
-      status: 'rejected',
-      adType: 'sponsored_message',
-      targetAge: '20-40',
-      targetLocation: 'Lagos',
-      impressions: 0,
-      clicks: 0,
-      conversions: 0,
-      createdAt: '2024-01-18',
-      rejectedAt: '2024-01-19T09:15:00Z',
-      rejectionReason: 'Misleading pricing claims'
-    }
-  ]);
-
+  const [campaigns, setCampaigns] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [selectedCampaign, setSelectedCampaign] = useState(null);
   const [showModal, setShowModal] = useState(false);
+
+  useEffect(() => { fetchCampaigns(); }, []);
+
+  const fetchCampaigns = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/advertising');
+      const json = await res.json();
+      if (json.success) setCampaigns(json.campaigns || []);
+    } catch (err) {
+      console.error('Fetch campaigns error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const stats = {
     total: campaigns.length,
@@ -93,10 +30,10 @@ export default function AdvertisingManagement() {
     active: campaigns.filter(c => c.status === 'active').length,
     completed: campaigns.filter(c => c.status === 'completed').length,
     rejected: campaigns.filter(c => c.status === 'rejected').length,
-    totalRevenue: campaigns.reduce((sum, c) => sum + (c.spent * 0.1), 0), // 10% platform fee
-    totalSpent: campaigns.reduce((sum, c) => sum + c.spent, 0),
-    totalImpressions: campaigns.reduce((sum, c) => sum + c.impressions, 0),
-    totalClicks: campaigns.reduce((sum, c) => sum + c.clicks, 0)
+    totalRevenue: campaigns.reduce((sum, c) => sum + ((c.spent || 0) * 0.1), 0),
+    totalSpent: campaigns.reduce((sum, c) => sum + (c.spent || 0), 0),
+    totalImpressions: campaigns.reduce((sum, c) => sum + (c.impressions || 0), 0),
+    totalClicks: campaigns.reduce((sum, c) => sum + (c.clicks || 0), 0),
   };
 
   const filteredCampaigns = campaigns.filter(campaign => {
@@ -104,38 +41,40 @@ export default function AdvertisingManagement() {
     return campaign.status === filter;
   });
 
-  const handleApprove = (campaignId) => {
-    setCampaigns(campaigns.map(c => 
-      c.id === campaignId 
-        ? { ...c, status: 'active', approvedAt: new Date().toISOString() }
-        : c
-    ));
+  const handleApprove = async (campaignId) => {
+    try {
+      const res = await fetch('/api/advertising', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: campaignId, status: 'active' }),
+      });
+      const json = await res.json();
+      if (json.success) fetchCampaigns();
+      else setCampaigns(campaigns.map(c => c.id === campaignId ? { ...c, status: 'active' } : c));
+    } catch { setCampaigns(campaigns.map(c => c.id === campaignId ? { ...c, status: 'active' } : c)); }
     setShowModal(false);
   };
 
-  const handleReject = (campaignId, reason) => {
-    setCampaigns(campaigns.map(c => 
-      c.id === campaignId 
-        ? { ...c, status: 'rejected', rejectedAt: new Date().toISOString(), rejectionReason: reason }
-        : c
-    ));
+  const handleReject = async (campaignId, reason) => {
+    try {
+      const res = await fetch('/api/advertising', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: campaignId, status: 'rejected', rejectionReason: reason }),
+      });
+      const json = await res.json();
+      if (json.success) fetchCampaigns();
+      else setCampaigns(campaigns.map(c => c.id === campaignId ? { ...c, status: 'rejected', rejectionReason: reason } : c));
+    } catch { setCampaigns(campaigns.map(c => c.id === campaignId ? { ...c, status: 'rejected' } : c)); }
     setShowModal(false);
   };
 
-  const handlePause = (campaignId) => {
-    setCampaigns(campaigns.map(c => 
-      c.id === campaignId 
-        ? { ...c, status: 'paused', pausedAt: new Date().toISOString() }
-        : c
-    ));
+  const handlePause = async (campaignId) => {
+    setCampaigns(campaigns.map(c => c.id === campaignId ? { ...c, status: 'paused' } : c));
   };
 
-  const handleResume = (campaignId) => {
-    setCampaigns(campaigns.map(c => 
-      c.id === campaignId 
-        ? { ...c, status: 'active', resumedAt: new Date().toISOString() }
-        : c
-    ));
+  const handleResume = async (campaignId) => {
+    setCampaigns(campaigns.map(c => c.id === campaignId ? { ...c, status: 'active' } : c));
   };
 
   const getStatusColor = (status) => {
@@ -242,18 +181,10 @@ export default function AdvertisingManagement() {
 
       {/* Quick Actions */}
       <div className="mb-6 flex flex-wrap gap-4">
-        <Link href="/advertising-analytics" className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center">
-          <BarChart3 className="h-4 w-4 mr-2" />
-          View Analytics
-        </Link>
-        <Link href="/advertising-policies" className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 flex items-center">
-          <Target className="h-4 w-4 mr-2" />
-          Manage Policies
-        </Link>
-        <Link href="/advertising-revenue" className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center">
-          <DollarSign className="h-4 w-4 mr-2" />
-          Revenue Reports
-        </Link>
+        <button onClick={fetchCampaigns} className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center">
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Refresh
+        </button>
       </div>
 
       {/* Filters */}
@@ -275,6 +206,16 @@ export default function AdvertisingManagement() {
 
       {/* Campaigns Table */}
       <div className="bg-white shadow overflow-hidden sm:rounded-md">
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        ) : filteredCampaigns.length === 0 ? (
+          <div className="text-center py-12 text-gray-500">
+            <Target className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+            <p className="text-sm">No campaigns found.</p>
+          </div>
+        ) : (
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
@@ -365,6 +306,7 @@ export default function AdvertisingManagement() {
             ))}
           </tbody>
         </table>
+        )}
       </div>
 
       {/* Campaign Detail Modal */}
@@ -433,8 +375,8 @@ export default function AdvertisingManagement() {
       )}
 
       <div className="mt-8">
-        <Link href="/business-section" className="text-blue-600 hover:text-blue-500 font-medium">
-          ← Back to Business Section
+        <Link href="/" className="text-blue-600 hover:text-blue-500 font-medium">
+          ← Back to Dashboard
         </Link>
       </div>
     </div>

@@ -1,108 +1,94 @@
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+);
+
 export default async function handler(req, res) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { limit = 50, severity, timeframe = '24h' } = req.query;
-    
-    const errors = await getErrorReports(limit, severity, timeframe);
-    const summary = await getErrorSummary(timeframe);
-    
-    res.status(200).json({
-      success: true,
-      data: {
-        errors: errors.map(error => ({
-          id: error.id,
-          type: error.type,
-          app: error.platform === 'mobile' ? 'Mobile App' : error.platform === 'web' ? 'Web App' : 'Server',
-          count: error.count,
-          lastOccurred: new Date(error.timestamp).toLocaleString()
-        })),
-        alerts: [
-          {
-            id: 1,
-            type: 'warning',
-            message: 'High memory usage detected',
-            timestamp: new Date(Date.now() - 30 * 60 * 1000).toLocaleString(),
-            status: 'active'
-          },
-          {
-            id: 2,
-            type: 'info',
-            message: 'System backup completed',
-            timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toLocaleString(),
-            status: 'resolved'
-          }
-        ]
-      }
-    });
-  } catch (error) {
-    console.error('Error fetching error reports:', error);
-    res.status(500).json({ error: 'Failed to fetch error reports' });
-  }
-}
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-async function getErrorReports(limit, severity, timeframe) {
-  // Mock error data - replace with actual database queries
-  const mockErrors = [
-    {
-      id: '1',
-      type: 'crash',
-      severity: 'critical',
-      message: 'App crashed during payment processing',
-      stack: 'Error: Payment gateway timeout\n  at PaymentService.process',
-      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-      userId: 'user123',
-      platform: 'mobile',
-      count: 3
-    },
-    {
-      id: '2',
-      type: 'api_error',
-      severity: 'warning',
-      message: 'API rate limit exceeded',
-      stack: 'RateLimitError: Too many requests',
-      timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-      userId: 'user456',
-      platform: 'web',
-      count: 15
-    },
-    {
-      id: '3',
-      type: 'timeout',
-      severity: 'warning',
-      message: 'Database query timeout',
-      stack: 'TimeoutError: Query exceeded 30s limit',
-      timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-      userId: null,
-      platform: 'server',
-      count: 7
+    const [backupsRes, escalationsRes, auditRes] = await Promise.allSettled([
+      supabase
+        .from('backup_logs')
+        .select('id, status, error_message, created_at, backup_type')
+        .eq('status', 'failed')
+        .order('created_at', { ascending: false })
+        .limit(20),
+
+      supabase
+        .from('ai_escalations')
+        .select('id, customer_id, escalation_reason, status, created_at')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+        .limit(20),
+
+      supabase
+        .from('admin_audit_logs')
+        .select('id, action, entity_type, details, created_at, admin_id')
+        .gte('created_at', since)
+        .order('created_at', { ascending: false })
+        .limit(30),
+    ]);
+
+    const errors = [];
+
+    for (const b of (backupsRes.value?.data || [])) {
+      errors.push({
+        id: b.id,
+        type: 'Backup Failed',
+        severity: 'high',
+        count: 1,
+        lastOccurred: b.created_at,
+        status: 'active',
+        app: 'Backup Service',
+        message: b.error_message || `${b.backup_type} backup failed`,
+      });
     }
-  ];
 
-  let filtered = mockErrors;
-  
-  if (severity) {
-    filtered = filtered.filter(error => error.severity === severity);
+    for (const e of (escalationsRes.value?.data || [])) {
+      errors.push({
+        id: e.id,
+        type: 'AI Escalation Pending',
+        severity: 'medium',
+        count: 1,
+        lastOccurred: e.created_at,
+        status: 'investigating',
+        app: 'AI Agent Service',
+        message: e.escalation_reason || `Customer ${e.customer_id?.slice(0, 8)} waiting`,
+      });
+    }
+
+    const failedActions = (auditRes.value?.data || []).filter(a =>
+      a.action?.includes('fail') || a.action?.includes('error') || a.action?.includes('reject')
+    );
+    for (const a of failedActions) {
+      errors.push({
+        id: a.id,
+        type: `Admin Action: ${a.action}`,
+        severity: 'low',
+        count: 1,
+        lastOccurred: a.created_at,
+        status: 'resolved',
+        app: 'Admin Portal',
+        message: typeof a.details === 'string' ? a.details : JSON.stringify(a.details || {}),
+      });
+    }
+
+    const summary = {
+      total: errors.length,
+      critical: errors.filter(e => e.severity === 'critical').length,
+      high: errors.filter(e => e.severity === 'high').length,
+      resolved: errors.filter(e => e.status === 'resolved').length,
+      pending: errors.filter(e => e.status !== 'resolved').length,
+    };
+
+    return res.json({ success: true, errors, summary });
+  } catch (err) {
+    console.error('[errors] error:', err);
+    return res.status(500).json({ success: false, error: err.message });
   }
-  
-  return filtered.slice(0, parseInt(limit));
-}
-
-async function getErrorSummary(timeframe) {
-  return {
-    totalErrors: 25,
-    criticalErrors: 3,
-    warningErrors: 15,
-    infoErrors: 7,
-    topErrors: [
-      { type: 'api_error', count: 15 },
-      { type: 'timeout', count: 7 },
-      { type: 'crash', count: 3 }
-    ],
-    errorTrend: 'decreasing',
-    lastHour: 2,
-    last24Hours: 25
-  };
 }

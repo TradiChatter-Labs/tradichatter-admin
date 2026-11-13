@@ -14,6 +14,7 @@ export default async function handler(req, res) {
 
     const serviceStatuses = Object.values(services);
     const healthyServices = serviceStatuses.filter(s => s.status === 'healthy').length;
+    const deployedServices = serviceStatuses.filter(s => s.status !== 'not_deployed').length;
 
     res.json({
       success: true,
@@ -21,8 +22,8 @@ export default async function handler(req, res) {
         ...stats,
         systemHealth: {
           healthy: healthyServices,
-          total: serviceStatuses.length,
-          status: healthyServices === serviceStatuses.length ? 'all_healthy' : 'degraded',
+          total: deployedServices,
+          status: deployedServices === 0 || healthyServices === deployedServices ? 'all_healthy' : 'degraded',
         },
         services,
       },

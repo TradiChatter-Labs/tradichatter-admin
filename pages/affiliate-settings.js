@@ -1,10 +1,8 @@
-import Layout from '../components/Layout';
 import { Settings, Shield, Users, DollarSign, AlertTriangle } from 'lucide-react';
 
 export default function AffiliateSettings() {
   return (
-    <Layout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Affiliate Program Settings</h1>
           <p className="text-sm text-gray-500 mt-1">Configure the affiliate system for V2 launch</p>
@@ -99,6 +97,5 @@ export default function AffiliateSettings() {
           </div>
         </div>
       </div>
-    </Layout>
   );
 }

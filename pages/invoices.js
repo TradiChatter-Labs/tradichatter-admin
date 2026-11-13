@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import Layout from '../components/Layout';
 import { Search, RefreshCw } from 'lucide-react';
 
 export default function Invoices() {
@@ -37,11 +36,10 @@ export default function Invoices() {
     }
   };
 
-  if (loading) return <Layout><div className="flex justify-center py-12"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div></Layout>;
+  if (loading) return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>;
 
   return (
-    <Layout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Invoices</h1>
@@ -100,6 +98,5 @@ export default function Invoices() {
           </div>
         </div>
       </div>
-    </Layout>
   );
 }

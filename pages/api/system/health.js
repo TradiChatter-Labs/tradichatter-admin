@@ -20,11 +20,12 @@ export default async function handler(req, res) {
 
     const serviceStatuses = Object.values(services);
     const healthyCount = serviceStatuses.filter(s => s.status === 'healthy').length;
+    const deployedCount = serviceStatuses.filter(s => s.status !== 'not_deployed').length;
     const totalServices = serviceStatuses.length;
 
     let overallStatus = 'healthy';
-    if (healthyCount === 0) overallStatus = 'critical';
-    else if (healthyCount < totalServices) overallStatus = 'degraded';
+    if (deployedCount > 0 && healthyCount === 0) overallStatus = 'critical';
+    else if (healthyCount < deployedCount) overallStatus = 'degraded';
 
     res.status(200).json({
       success: true,
@@ -36,6 +37,7 @@ export default async function handler(req, res) {
         uptime: Math.floor(process.uptime() / 3600) + 'h ' + Math.floor((process.uptime() % 3600) / 60) + 'm',
         timestamp: new Date().toISOString(),
         healthyServices: healthyCount,
+        deployedServices: deployedCount,
         totalServices,
       },
     });

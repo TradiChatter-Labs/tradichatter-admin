@@ -30,12 +30,14 @@ export default function SystemMonitoring() {
 
   const getStatusIcon = (status) => {
     if (status === 'healthy') return <CheckCircle className="h-5 w-5 text-green-500" />;
+    if (status === 'not_deployed') return <AlertTriangle className="h-5 w-5 text-gray-400" />;
     if (status === 'timeout' || status === 'degraded') return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
     return <XCircle className="h-5 w-5 text-red-500" />;
   };
 
   const getStatusBg = (status) => {
     if (status === 'healthy') return 'bg-green-50 border-green-200';
+    if (status === 'not_deployed') return 'bg-gray-50 border-gray-200';
     if (status === 'timeout' || status === 'degraded') return 'bg-yellow-50 border-yellow-200';
     return 'bg-red-50 border-red-200';
   };
@@ -83,7 +85,7 @@ export default function SystemMonitoring() {
             <div className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium ${getOverallBg(health.overallStatus)}`}>
               {getStatusIcon(health.overallStatus)}
               <span className="ml-2">
-                System: {health.overallStatus?.toUpperCase()} — {health.healthyServices}/{health.totalServices} services healthy
+                System: {health.overallStatus?.toUpperCase()} — {health.healthyServices}/{health.deployedServices ?? health.totalServices} services healthy
               </span>
             </div>
             <span className="ml-4 text-sm text-gray-500">Uptime: {health.uptime}</span>
@@ -103,14 +105,21 @@ export default function SystemMonitoring() {
                 <div className="space-y-1">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Status</span>
-                    <span className={`font-medium ${svc.status === 'healthy' ? 'text-green-700' : svc.status === 'timeout' ? 'text-yellow-700' : 'text-red-700'}`}>
-                      {svc.status}
+                    <span className={`font-medium ${
+                      svc.status === 'healthy' ? 'text-green-700' :
+                      svc.status === 'not_deployed' ? 'text-gray-500' :
+                      svc.status === 'timeout' ? 'text-yellow-700' : 'text-red-700'
+                    }`}>
+                      {svc.status === 'not_deployed' ? 'Not deployed' : svc.status}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Latency</span>
-                    <span className={`font-medium ${svc.latency < 200 ? 'text-green-700' : svc.latency < 1000 ? 'text-yellow-700' : 'text-red-700'}`}>
-                      {svc.latency}ms
+                    <span className={`font-medium ${
+                      svc.status === 'not_deployed' ? 'text-gray-400' :
+                      svc.latency < 200 ? 'text-green-700' : svc.latency < 1000 ? 'text-yellow-700' : 'text-red-700'
+                    }`}>
+                      {svc.status === 'not_deployed' ? '—' : `${svc.latency}ms`}
                     </span>
                   </div>
                   {svc.error && (

@@ -114,6 +114,7 @@ export default function Dashboard() {
 
   const getHealthIcon = (status) => {
     if (status === 'healthy') return <CheckCircle className="h-4 w-4 text-green-500" />;
+    if (status === 'not_deployed') return <AlertTriangle className="h-4 w-4 text-gray-400" />;
     if (status === 'timeout' || status === 'degraded') return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
     return <XCircle className="h-4 w-4 text-red-500" />;
   };
