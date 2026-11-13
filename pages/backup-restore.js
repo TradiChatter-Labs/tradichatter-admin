@@ -12,6 +12,23 @@ export default function BackupRestore() {
   const [confirmation, setConfirmation] = useState('');
   const [restoring, setRestoring] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
+  const [nextBackupIn, setNextBackupIn] = useState('');
+
+  useEffect(() => {
+    const calcCountdown = () => {
+      const now = new Date();
+      const next = new Date();
+      next.setUTCHours(0, 0, 0, 0);
+      if (next <= now) next.setUTCDate(next.getUTCDate() + 1);
+      const diff = next - now;
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      setNextBackupIn(`${h}h ${m}m`);
+    };
+    calcCountdown();
+    const t = setInterval(calcCountdown, 60000);
+    return () => clearInterval(t);
+  }, []);
 
   const fetchBackups = useCallback(async () => {
     try {
@@ -199,6 +216,9 @@ export default function BackupRestore() {
         <strong>Schedule:</strong> Daily at 00:00 UTC (Cloudflare Worker cron) &nbsp;|&nbsp;
         Weekly copies on Sundays &nbsp;|&nbsp; Monthly copies on 1st of month &nbsp;|&nbsp;
         Retention: 30 days daily · 12 weeks weekly · 12 months monthly
+        {nextBackupIn && (
+          <span className="ml-2 font-medium">&nbsp;|&nbsp; ⏱ Next backup in {hasRunning ? '⏳ running now' : nextBackupIn}</span>
+        )}
       </div>
 
       {/* Backup history table */}

@@ -1,12 +1,50 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import {
   Users, Store, ShoppingCart, CreditCard, BarChart3, Settings, Shield,
   MessageSquare, Bell, UserCheck, Package, Menu, X, DollarSign, LogOut,
   Activity, Bot, Globe, Truck, ChevronDown, ChevronRight, Mail, Send, Filter,
-  AlertTriangle, Star, FileText, Smartphone, Database, UserX
+  AlertTriangle, Star, FileText, Smartphone, Database, UserX, Search,
 } from 'lucide-react';
+
+// ── Route label map for breadcrumbs ──────────────────────────────────────
+const ROUTE_LABELS = {
+  '/': 'Dashboard',
+  '/users': 'Users', '/businesses': 'Businesses', '/orders': 'Orders',
+  '/escrow': 'Escrow', '/payments': 'Payments', '/invoices': 'Invoices',
+  '/subscription-management': 'Subscriptions', '/kyc': 'KYC',
+  '/inventory': 'Inventory', '/call-management': 'Call Management',
+  '/product-moderation': 'Product Moderation', '/reviews-management': 'Reviews',
+  '/chat-moderation': 'Chat Moderation', '/user-suspension': 'User Suspension',
+  '/sourcehub': 'SourceHub', '/sourcehub/suppliers': 'Suppliers',
+  '/sourcehub/orders': 'Wholesale Orders', '/sourcehub/treasury': 'Escrow & Treasury',
+  '/sourcehub/disputes': 'Disputes', '/sourcehub/logistics': 'Logistics',
+  '/ai-agents': 'AI Agent Dashboard', '/ai-agents/conversations': 'AI Conversations',
+  '/ai-agents/knowledge-base': 'AI Knowledge Base', '/ai-agents/kill-switch': 'AI Kill Switch',
+  '/voice-translation': 'Voice Translation', '/voice-controls': 'Voice Controls',
+  '/avs-engine': 'Verification Queue', '/avs-engine/badges': 'Badge Management',
+  '/avs-engine/weights': 'Weight Tuning', '/avs-engine/audit-trail': 'Audit Trail',
+  '/affiliate-management': 'Management', '/affiliate-analytics': 'Analytics',
+  '/affiliate-settings': 'Program Settings', '/advertising-management': 'Advertising',
+  '/notification-templates': 'Email Templates', '/broadcasts': 'Email Campaigns',
+  '/email-segments': 'Email Segments', '/push-notifications': 'Push Notifications',
+  '/sms-campaigns': 'SMS', '/feature-flags': 'Feature Flags',
+  '/financial': 'Financial', '/security-management': 'Security',
+  '/admin-users': 'Admin Users', '/team-management': 'Team Management',
+  '/seller-subaccounts': 'Seller Subaccounts', '/notifications': 'Admin Alerts',
+  '/admin-activity-logs': 'Audit Logs', '/data-export': 'Data Export',
+  '/backup-restore': 'Backup & Restore', '/mobile-control': 'Mobile Control',
+  '/maintenance-mode': 'Maintenance', '/settings': 'Settings',
+  '/system-monitoring': 'System Monitoring', '/analytics': 'Analytics',
+  '/error-management-dashboard': 'Error Tracking',
+};
+
+const SECTION_LABELS = {
+  'sourcehub': 'SourceHub (B2B)',
+  'ai-agents': 'AI Systems',
+  'avs-engine': 'AVS Engine',
+};
 
 const navGroups = [
   {
@@ -111,6 +149,7 @@ const navGroups = [
   },
 ];
 
+// ── NavGroup ──────────────────────────────────────────────────────────────
 function NavGroup({ group, router }) {
   const [open, setOpen] = useState(true);
 
@@ -127,15 +166,16 @@ function NavGroup({ group, router }) {
         <nav className="space-y-0.5 px-2">
           {group.items.map((item) => {
             const Icon = item.icon;
-            const active = router.pathname === item.href || router.pathname.startsWith(item.href + '/');
+            // Fix: exact match for '/', prefix match for all others
+            const active = item.href === '/'
+              ? router.pathname === '/'
+              : router.pathname === item.href || router.pathname.startsWith(item.href + '/');
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 className={`group flex items-center px-2 py-1.5 text-sm font-medium rounded-md ${
-                  active
-                    ? 'bg-blue-50 text-blue-700'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  active ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                 }`}
               >
                 <Icon className={`mr-3 h-4 w-4 ${active ? 'text-blue-500' : 'text-gray-400'}`} />
@@ -149,6 +189,264 @@ function NavGroup({ group, router }) {
   );
 }
 
+// ── Breadcrumb ────────────────────────────────────────────────────────────
+function Breadcrumb({ pathname }) {
+  if (pathname === '/') return null;
+
+  const segments = pathname.split('/').filter(Boolean);
+  const crumbs = [{ label: 'Dashboard', href: '/' }];
+
+  // Build intermediate crumbs for nested paths like /sourcehub/orders
+  if (segments.length > 1 && SECTION_LABELS[segments[0]]) {
+    crumbs.push({ label: SECTION_LABELS[segments[0]], href: `/${segments[0]}` });
+  }
+  crumbs.push({ label: ROUTE_LABELS[pathname] || segments[segments.length - 1], href: pathname });
+
+  return (
+    <nav className="flex items-center space-x-1 text-xs text-gray-500 mb-4">
+      {crumbs.map((crumb, i) => (
+        <span key={crumb.href} className="flex items-center">
+          {i > 0 && <ChevronRight className="h-3 w-3 mx-1 text-gray-400" />}
+          {i < crumbs.length - 1 ? (
+            <Link href={crumb.href} className="hover:text-blue-600 hover:underline">{crumb.label}</Link>
+          ) : (
+            <span className="text-gray-700 font-medium">{crumb.label}</span>
+          )}
+        </span>
+      ))}
+    </nav>
+  );
+}
+
+// ── Global Search ─────────────────────────────────────────────────────────
+function GlobalSearch() {
+  const router = useRouter();
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+  const debounceRef = useRef(null);
+  const wrapperRef = useRef(null);
+
+  const search = useCallback(async (q) => {
+    if (q.length < 2) { setResults(null); return; }
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/search/global?q=${encodeURIComponent(q)}`);
+      const data = await res.json();
+      setResults(data);
+    } catch { setResults(null); }
+    finally { setLoading(false); }
+  }, []);
+
+  const handleChange = (e) => {
+    const val = e.target.value;
+    setQuery(val);
+    setOpen(true);
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => search(val), 300);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Escape') { setOpen(false); setQuery(''); }
+  };
+
+  const handleNavigate = (href) => {
+    setOpen(false);
+    setQuery('');
+    setResults(null);
+    router.push(href);
+  };
+
+  // Close on outside click
+  useEffect(() => {
+    const handler = (e) => { if (wrapperRef.current && !wrapperRef.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const hasResults = results && (results.users?.length || results.businesses?.length || results.orders?.length || results.escalations?.length);
+
+  return (
+    <div ref={wrapperRef} className="relative flex-1 max-w-md">
+      <div className="relative">
+        <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400 pointer-events-none" />
+        <input
+          type="text"
+          value={query}
+          onChange={handleChange}
+          onKeyDown={handleKeyDown}
+          onFocus={() => query.length >= 2 && setOpen(true)}
+          placeholder="Search users, businesses, orders..."
+          className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+        />
+        {loading && <div className="absolute right-3 top-2.5 h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />}
+      </div>
+
+      {open && query.length >= 2 && (
+        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
+          {!hasResults && !loading && (
+            <div className="px-4 py-6 text-sm text-gray-500 text-center">No results for "{query}"</div>
+          )}
+
+          {results?.users?.length > 0 && (
+            <div>
+              <div className="px-3 py-1.5 text-xs font-semibold text-gray-400 uppercase bg-gray-50 border-b">Users</div>
+              {results.users.map(u => (
+                <button key={u.id} onClick={() => handleNavigate('/users')} className="w-full flex items-center px-4 py-2.5 hover:bg-blue-50 text-left">
+                  <Users className="h-4 w-4 text-blue-500 mr-3 flex-shrink-0" />
+                  <div>
+                    <div className="text-sm font-medium text-gray-900">{u.display_name || 'Unknown'}</div>
+                    <div className="text-xs text-gray-500">{u.phone} · {u.user_type}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {results?.businesses?.length > 0 && (
+            <div>
+              <div className="px-3 py-1.5 text-xs font-semibold text-gray-400 uppercase bg-gray-50 border-b border-t">Businesses</div>
+              {results.businesses.map(b => (
+                <button key={b.id} onClick={() => handleNavigate('/businesses')} className="w-full flex items-center px-4 py-2.5 hover:bg-blue-50 text-left">
+                  <Store className="h-4 w-4 text-green-500 mr-3 flex-shrink-0" />
+                  <div>
+                    <div className="text-sm font-medium text-gray-900">{b.business_name}</div>
+                    <div className="text-xs text-gray-500">{b.city}, {b.state} · {b.subscription_status || 'free'}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {results?.orders?.length > 0 && (
+            <div>
+              <div className="px-3 py-1.5 text-xs font-semibold text-gray-400 uppercase bg-gray-50 border-b border-t">Orders</div>
+              {results.orders.map(o => (
+                <button key={o.id} onClick={() => handleNavigate('/orders')} className="w-full flex items-center px-4 py-2.5 hover:bg-blue-50 text-left">
+                  <ShoppingCart className="h-4 w-4 text-orange-500 mr-3 flex-shrink-0" />
+                  <div>
+                    <div className="text-sm font-medium text-gray-900">Order #{o.id?.slice(0, 8)}</div>
+                    <div className="text-xs text-gray-500">₦{(o.total_amount || 0).toLocaleString()} · {o.status}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {results?.escalations?.length > 0 && (
+            <div>
+              <div className="px-3 py-1.5 text-xs font-semibold text-gray-400 uppercase bg-gray-50 border-b border-t">Escalations</div>
+              {results.escalations.map(e => (
+                <button key={e.id} onClick={() => handleNavigate('/ai-agents')} className="w-full flex items-center px-4 py-2.5 hover:bg-blue-50 text-left">
+                  <AlertTriangle className="h-4 w-4 text-red-500 mr-3 flex-shrink-0" />
+                  <div>
+                    <div className="text-sm font-medium text-gray-900">{e.customer_id?.slice(0, 16)}</div>
+                    <div className="text-xs text-gray-500 truncate max-w-xs">{e.customer_message?.slice(0, 60)}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Notifications Bell ────────────────────────────────────────────────────
+function NotificationsBell() {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [data, setData] = useState({ unreadCount: 0, notifications: [] });
+  const wrapperRef = useRef(null);
+
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const res = await fetch('/api/system/notifications-summary');
+      const json = await res.json();
+      if (json.success) setData(json);
+    } catch { /* silent fail */ }
+  }, []);
+
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 120000); // every 2 min
+    return () => clearInterval(interval);
+  }, [fetchNotifications]);
+
+  useEffect(() => {
+    const handler = (e) => { if (wrapperRef.current && !wrapperRef.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const timeAgo = (iso) => {
+    const diff = Date.now() - new Date(iso).getTime();
+    const m = Math.floor(diff / 60000);
+    if (m < 1) return 'just now';
+    if (m < 60) return `${m}m ago`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `${h}h ago`;
+    return `${Math.floor(h / 24)}d ago`;
+  };
+
+  return (
+    <div ref={wrapperRef} className="relative">
+      <button
+        onClick={() => setOpen(!open)}
+        className="relative p-1.5 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-md"
+        title="Notifications"
+      >
+        <Bell className="h-5 w-5" />
+        {data.unreadCount > 0 && (
+          <span className="absolute -top-0.5 -right-0.5 h-4 w-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+            {data.unreadCount > 9 ? '9+' : data.unreadCount}
+          </span>
+        )}
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+          <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+            <span className="text-sm font-semibold text-gray-900">Notifications</span>
+            {data.unreadCount > 0 && (
+              <span className="text-xs text-blue-600 font-medium">{data.unreadCount} unread</span>
+            )}
+          </div>
+
+          {data.notifications.length === 0 ? (
+            <div className="px-4 py-6 text-sm text-gray-500 text-center">No notifications</div>
+          ) : (
+            <div className="divide-y divide-gray-50">
+              {data.notifications.map((n) => (
+                <button
+                  key={n.id}
+                  onClick={() => { setOpen(false); if (n.href) router.push(n.href); }}
+                  className="w-full px-4 py-3 text-left hover:bg-gray-50"
+                >
+                  <p className="text-sm text-gray-800 leading-snug">{n.message}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{timeAgo(n.created_at)}</p>
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="px-4 py-2 border-t border-gray-100">
+            <button
+              onClick={() => { setOpen(false); router.push('/notifications'); }}
+              className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+            >
+              View all notifications →
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Main Layout ───────────────────────────────────────────────────────────
 export default function Layout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const router = useRouter();
@@ -181,7 +479,7 @@ export default function Layout({ children }) {
         ))}
       </div>
       <div className="px-4 py-3 border-t border-gray-200 text-xs text-gray-400">
-        Admin v2.1 — Streamlined
+        Admin v2.2 — Streamlined
       </div>
     </div>
   );
@@ -212,17 +510,37 @@ export default function Layout({ children }) {
 
       {/* Main content */}
       <div className="lg:pl-64">
-        <div className="sticky top-0 z-10 bg-white pl-1 pt-1 sm:pl-3 sm:pt-3 lg:hidden border-b border-gray-200">
+        {/* Top header bar — search + bell */}
+        <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-2 flex items-center gap-3">
+          {/* Mobile hamburger */}
           <button
             onClick={() => setSidebarOpen(true)}
-            className="-ml-0.5 -mt-0.5 inline-flex h-12 w-12 items-center justify-center rounded-md text-gray-500 hover:text-gray-900"
+            className="lg:hidden -ml-1 p-1.5 text-gray-500 hover:text-gray-900 rounded-md"
           >
-            <Menu className="h-6 w-6" />
+            <Menu className="h-5 w-5" />
+          </button>
+
+          {/* Global search */}
+          <GlobalSearch />
+
+          {/* Notifications bell */}
+          <NotificationsBell />
+
+          {/* Logout on mobile */}
+          <button
+            onClick={handleLogout}
+            className="lg:hidden p-1.5 text-gray-400 hover:text-red-600 rounded-md"
+            title="Logout"
+          >
+            <LogOut className="h-4 w-4" />
           </button>
         </div>
+
         <main className="flex-1">
           <div className="py-6">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+              {/* Breadcrumb */}
+              <Breadcrumb pathname={router.pathname} />
               {children}
             </div>
           </div>

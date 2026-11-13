@@ -7,6 +7,7 @@ export default function PaymentsPage() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
+  const [search, setSearch] = useState('');
 
   useEffect(() => { fetchPayments(); }, [page, statusFilter]);
 
@@ -14,6 +15,7 @@ export default function PaymentsPage() {
     setLoading(true);
     try {
       const params = new URLSearchParams({ page, limit: 50 });
+      if (search) params.set('search', search);
       if (statusFilter) params.set('status', statusFilter);
       const res = await fetch(`/api/payments?${params}`);
       const json = await res.json();
@@ -39,6 +41,10 @@ export default function PaymentsPage() {
       </div>
 
       <div className="flex gap-4 mb-6">
+        <div className="flex-1 relative">
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+          <input type="text" placeholder="Search by reference or business..." value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && fetchPayments()} className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md" />
+        </div>
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="px-4 py-2 border border-gray-300 rounded-md">
           <option value="">All Status</option>
           <option value="paid">Paid</option>

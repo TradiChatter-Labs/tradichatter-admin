@@ -40,6 +40,7 @@ export default function ChatModeration() {
   ]);
 
   const [filter, setFilter] = useState('all');
+  const [search, setSearch] = useState('');
   const [selectedReport, setSelectedReport] = useState(null);
   const [autoModerationEnabled, setAutoModerationEnabled] = useState(true);
   const [moderationRules, setModerationRules] = useState({
@@ -64,9 +65,11 @@ export default function ChatModeration() {
     { id: 2, type: 'spam', message: 'Spam burst detected from user @trader456', time: '5 min ago' }
   ]);
 
-  const filteredReports = reports.filter(report => 
-    filter === 'all' || report.status === filter
-  );
+  const filteredReports = reports.filter(report => {
+    const matchFilter = filter === 'all' || report.status === filter;
+    const matchSearch = !search || report.reportedUser?.toLowerCase().includes(search.toLowerCase()) || report.message?.toLowerCase().includes(search.toLowerCase()) || report.reason?.toLowerCase().includes(search.toLowerCase());
+    return matchFilter && matchSearch;
+  });
 
   const handleAction = (reportId, action) => {
     setReports(reports.map(report => 
@@ -266,6 +269,9 @@ export default function ChatModeration() {
             <div>
               <div className="flex items-center space-x-4 mb-4">
                 <Filter className="h-5 w-5 text-gray-400" />
+                <div className="flex-1 relative">
+                  <input type="text" placeholder="Search by user or message..." value={search} onChange={e => setSearch(e.target.value)} className="w-full pl-3 pr-4 py-2 border border-gray-300 rounded-md text-sm" />
+                </div>
                 <select
                   value={filter}
                   onChange={(e) => setFilter(e.target.value)}

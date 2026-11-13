@@ -5,10 +5,12 @@ import { Users, Store, DollarSign, BarChart3, ShoppingCart, CreditCard, Trending
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [activity, setActivity] = useState([]);
 
   useEffect(() => {
     fetchDashboard();
-    const interval = setInterval(fetchDashboard, 60000);
+    fetchActivity();
+    const interval = setInterval(() => { fetchDashboard(); fetchActivity(); }, 60000);
     return () => clearInterval(interval);
   }, []);
 
@@ -22,6 +24,25 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchActivity = async () => {
+    try {
+      const res = await fetch('/api/system/recent-activity');
+      const json = await res.json();
+      if (json.success) setActivity(json.activities || []);
+    } catch { /* silent */ }
+  };
+
+  const timeAgo = (iso) => {
+    if (!iso) return '';
+    const diff = Date.now() - new Date(iso).getTime();
+    const m = Math.floor(diff / 60000);
+    if (m < 1) return 'just now';
+    if (m < 60) return `${m} min ago`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `${h}h ago`;
+    return `${Math.floor(h / 24)}d ago`;
   };
 
   const sections = [
@@ -219,6 +240,31 @@ export default function Dashboard() {
             </Link>
           );
         })}
+      </div>
+
+      {/* Recent Activity */}
+      <div className="bg-white shadow rounded-lg mb-8">
+        <div className="px-4 py-4 border-b border-gray-200 flex items-center justify-between">
+          <h3 className="text-base font-semibold text-gray-900">Recent Activity</h3>
+          <Link href="/admin-activity-logs" className="text-xs text-blue-600 hover:text-blue-800">View all →</Link>
+        </div>
+        {activity.length === 0 ? (
+          <div className="px-4 py-6 text-sm text-gray-400 text-center">No recent activity</div>
+        ) : (
+          <ul className="divide-y divide-gray-50">
+            {activity.map((item, i) => (
+              <li key={i}>
+                <Link href={item.href} className="flex items-start px-4 py-3 hover:bg-gray-50">
+                  <span className="text-base mr-3 mt-0.5 flex-shrink-0">{item.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-gray-800 truncate">{item.text}</p>
+                  </div>
+                  <span className="text-xs text-gray-400 ml-3 flex-shrink-0 whitespace-nowrap">{timeAgo(item.time)}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       {/* Quick Access */}

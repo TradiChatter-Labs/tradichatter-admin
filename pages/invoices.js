@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
+import { Search, RefreshCw } from 'lucide-react';
 
 export default function Invoices() {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [search, setSearch] = useState('');
 
   useEffect(() => { fetchInvoices(); }, []);
 
@@ -20,7 +22,11 @@ export default function Invoices() {
     }
   };
 
-  const filteredInvoices = invoices.filter(inv => filter === 'all' || inv.status === filter);
+  const filteredInvoices = invoices.filter(inv => {
+    const matchStatus = filter === 'all' || inv.status === filter;
+    const matchSearch = !search || inv.business_name?.toLowerCase().includes(search.toLowerCase()) || inv.customer_name?.toLowerCase().includes(search.toLowerCase()) || inv.id?.toLowerCase().includes(search.toLowerCase());
+    return matchStatus && matchSearch;
+  });
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -51,12 +57,18 @@ export default function Invoices() {
         </div>
 
         <div className="bg-white rounded-lg shadow">
-          <div className="p-4 border-b flex space-x-2">
-            {['all', 'paid', 'pending', 'overdue'].map(s => (
-              <button key={s} onClick={() => setFilter(s)} className={`px-4 py-2 rounded-lg text-sm ${filter === s ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}>
-                {s.charAt(0).toUpperCase() + s.slice(1)}
-              </button>
-            ))}
+          <div className="p-4 border-b flex flex-col sm:flex-row gap-3">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+              <input type="text" placeholder="Search by business or customer..." value={search} onChange={e => setSearch(e.target.value)} className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm" />
+            </div>
+            <div className="flex gap-2">
+              {['all', 'paid', 'pending', 'overdue'].map(s => (
+                <button key={s} onClick={() => setFilter(s)} className={`px-4 py-2 rounded-lg text-sm ${filter === s ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}>
+                  {s.charAt(0).toUpperCase() + s.slice(1)}
+                </button>
+              ))}
+            </div>
           </div>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">

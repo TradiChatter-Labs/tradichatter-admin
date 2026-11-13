@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Shield, DollarSign, AlertTriangle, CheckCircle, Clock, RefreshCw } from 'lucide-react';
+import { Shield, DollarSign, AlertTriangle, CheckCircle, Clock, RefreshCw, Search } from 'lucide-react';
 
 export default function EscrowManagement() {
   const [escrows, setEscrows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [total, setTotal] = useState(0);
+  const [search, setSearch] = useState('');
 
   useEffect(() => { fetchEscrows(); }, [filter]);
 
@@ -14,6 +15,7 @@ export default function EscrowManagement() {
     setLoading(true);
     try {
       const params = new URLSearchParams();
+      if (search) params.set('search', search);
       if (filter !== 'all') params.set('status', filter);
       const res = await fetch(`/api/escrow?${params}`);
       const json = await res.json();
@@ -107,6 +109,15 @@ export default function EscrowManagement() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Search + Filters */}
+      <div className="flex gap-3 mb-2">
+        <div className="flex-1 relative">
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+          <input type="text" placeholder="Search by order ID or buyer..." value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && fetchEscrows()} className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm" />
+        </div>
+        <button onClick={fetchEscrows} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm flex items-center"><RefreshCw className="h-4 w-4 mr-2" />Search</button>
       </div>
 
       {/* Filters */}
