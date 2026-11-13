@@ -32,7 +32,7 @@ export default function KYCPage() {
   };
 
   const getStatusColor = (status) => {
-    const colors = { verified: 'bg-green-100 text-green-800', pending: 'bg-yellow-100 text-yellow-800', rejected: 'bg-red-100 text-red-800', submitted: 'bg-blue-100 text-blue-800' };
+    const colors = { approved: 'bg-green-100 text-green-800', verified: 'bg-green-100 text-green-800', pending: 'bg-yellow-100 text-yellow-800', rejected: 'bg-red-100 text-red-800', submitted: 'bg-blue-100 text-blue-800' };
     return colors[status] || 'bg-gray-100 text-gray-800';
   };
 
@@ -46,7 +46,7 @@ export default function KYCPage() {
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
         <div className="bg-white shadow rounded-lg p-4"><p className="text-sm text-gray-500">Total</p><p className="text-2xl font-bold">{total}</p></div>
         <div className="bg-white shadow rounded-lg p-4"><p className="text-sm text-gray-500">Pending</p><p className="text-2xl font-bold text-yellow-600">{kyc.filter(k => k.verification_status === 'pending' || k.verification_status === 'submitted').length}</p></div>
-        <div className="bg-white shadow rounded-lg p-4"><p className="text-sm text-gray-500">Verified</p><p className="text-2xl font-bold text-green-600">{kyc.filter(k => k.verification_status === 'verified').length}</p></div>
+        <div className="bg-white shadow rounded-lg p-4"><p className="text-sm text-gray-500">Approved</p><p className="text-2xl font-bold text-green-600">{kyc.filter(k => k.verification_status === 'approved' || k.verification_status === 'verified').length}</p></div>
         <div className="bg-white shadow rounded-lg p-4"><p className="text-sm text-gray-500">Rejected</p><p className="text-2xl font-bold text-red-600">{kyc.filter(k => k.verification_status === 'rejected').length}</p></div>
       </div>
 
@@ -59,7 +59,7 @@ export default function KYCPage() {
           <option value="">All Status</option>
           <option value="pending">Pending</option>
           <option value="submitted">Submitted</option>
-          <option value="verified">Verified</option>
+          <option value="approved">Approved</option>
           <option value="rejected">Rejected</option>
         </select>
         <button onClick={fetchKYC} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center">
@@ -101,7 +101,7 @@ export default function KYCPage() {
                   <td className="px-6 py-4 text-sm space-x-2">
                     {(k.verification_status === 'pending' || k.verification_status === 'submitted') && (
                       <>
-                        <button onClick={() => handleVerify(k.id, 'verified')} className="text-green-600 hover:text-green-800 font-medium">Approve</button>
+                        <button onClick={() => handleVerify(k.id, 'approved')} className="text-green-600 hover:text-green-800 font-medium">Approve</button>
                         <button onClick={() => handleVerify(k.id, 'rejected')} className="text-red-600 hover:text-red-800 font-medium">Reject</button>
                       </>
                     )}

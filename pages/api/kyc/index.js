@@ -22,6 +22,8 @@ export default async function handler(req, res) {
     if (!id || !status) return res.status(400).json({ error: 'id and status required' });
 
     const updates = { verification_status: status, updated_at: new Date().toISOString() };
+    if (status === 'approved') updates.verified_at = new Date().toISOString();
+    if (status === 'approved') updates.verified_at = new Date().toISOString();
 
     const { data, error } = await supabase.from('business_kyc').update(updates).eq('id', id).select().single();
     if (error) {
