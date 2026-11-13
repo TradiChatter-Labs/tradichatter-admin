@@ -201,7 +201,7 @@ export default function Dashboard() {
                 {getHealthIcon(svc.status)}
                 <div>
                   <div className="text-xs font-medium text-gray-700">{svc.name}</div>
-                  <div className="text-xs text-gray-400">{svc.latency}ms</div>
+                  <div className="text-xs text-gray-400">{svc.status === 'not_deployed' ? '—' : `${svc.latency}ms`}</div>
                 </div>
               </div>
             ))}
