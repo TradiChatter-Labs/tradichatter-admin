@@ -358,7 +358,8 @@ function GlobalSearch() {
 function NotificationsBell() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [data, setData] = useState({ unreadCount: 0, notifications: [] });
+  const [data, setData] = useState({ unreadCount: 0, notifications: [], systemAlerts: [] });
+  const [marking, setMarking] = useState(false);
   const wrapperRef = useRef(null);
 
   const fetchNotifications = useCallback(async () => {
@@ -371,7 +372,7 @@ function NotificationsBell() {
 
   useEffect(() => {
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 120000); // every 2 min
+    const interval = setInterval(fetchNotifications, 120000);
     return () => clearInterval(interval);
   }, [fetchNotifications]);
 
@@ -381,7 +382,42 @@ function NotificationsBell() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  const markAsRead = async (id) => {
+    // Optimistic update — decrement immediately
+    setData(prev => ({
+      ...prev,
+      unreadCount: Math.max(0, prev.unreadCount - 1),
+      notifications: prev.notifications.map(n => n.id === id ? { ...n, status: 'read' } : n),
+    }));
+    try {
+      await fetch('/api/system/notifications-summary', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+    } catch { /* silent — optimistic already applied */ }
+  };
+
+  const markAllAsRead = async () => {
+    setMarking(true);
+    // Optimistic update
+    setData(prev => ({
+      ...prev,
+      unreadCount: 0,
+      notifications: prev.notifications.map(n => ({ ...n, status: 'read' })),
+    }));
+    try {
+      await fetch('/api/system/notifications-summary', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ markAll: true }),
+      });
+    } catch { /* silent */ }
+    finally { setMarking(false); }
+  };
+
   const timeAgo = (iso) => {
+    if (!iso) return '';
     const diff = Date.now() - new Date(iso).getTime();
     const m = Math.floor(diff / 60000);
     if (m < 1) return 'just now';
@@ -389,6 +425,12 @@ function NotificationsBell() {
     const h = Math.floor(m / 60);
     if (h < 24) return `${h}h ago`;
     return `${Math.floor(h / 24)}d ago`;
+  };
+
+  const handleNotificationClick = (n) => {
+    if (n.status !== 'read') markAsRead(n.id);
+    setOpen(false);
+    if (n.href) router.push(n.href);
   };
 
   return (
@@ -408,30 +450,71 @@ function NotificationsBell() {
 
       {open && (
         <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+          {/* Header */}
           <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
             <span className="text-sm font-semibold text-gray-900">Notifications</span>
             {data.unreadCount > 0 && (
-              <span className="text-xs text-blue-600 font-medium">{data.unreadCount} unread</span>
+              <button
+                onClick={markAllAsRead}
+                disabled={marking}
+                className="text-xs text-blue-600 hover:text-blue-800 font-medium disabled:opacity-50"
+              >
+                {marking ? 'Marking...' : 'Mark all read'}
+              </button>
             )}
           </div>
 
-          {data.notifications.length === 0 ? (
-            <div className="px-4 py-6 text-sm text-gray-500 text-center">No notifications</div>
-          ) : (
-            <div className="divide-y divide-gray-50">
-              {data.notifications.map((n) => (
+          {/* Action Required — system alerts, no badge contribution */}
+          {data.systemAlerts?.length > 0 && (
+            <div>
+              <div className="px-4 py-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wide bg-gray-50 border-b border-gray-100">
+                Action Required
+              </div>
+              {data.systemAlerts.map((alert) => (
                 <button
-                  key={n.id}
-                  onClick={() => { setOpen(false); if (n.href) router.push(n.href); }}
-                  className="w-full px-4 py-3 text-left hover:bg-gray-50"
+                  key={alert.id}
+                  onClick={() => { setOpen(false); if (alert.href) router.push(alert.href); }}
+                  className="w-full px-4 py-2.5 text-left hover:bg-amber-50 border-b border-gray-50"
                 >
-                  <p className="text-sm text-gray-800 leading-snug">{n.message}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{timeAgo(n.created_at)}</p>
+                  <p className="text-sm text-gray-800 leading-snug">{alert.message}</p>
                 </button>
               ))}
             </div>
           )}
 
+          {/* Recent notifications — DB rows with unread dots */}
+          <div>
+            {data.systemAlerts?.length > 0 && (
+              <div className="px-4 py-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wide bg-gray-50 border-b border-gray-100">
+                Recent
+              </div>
+            )}
+            {data.notifications.length === 0 ? (
+              <div className="px-4 py-5 text-sm text-gray-400 text-center">No recent notifications</div>
+            ) : (
+              <div className="divide-y divide-gray-50">
+                {data.notifications.map((n) => (
+                  <button
+                    key={n.id}
+                    onClick={() => handleNotificationClick(n)}
+                    className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-start gap-2.5"
+                  >
+                    <span className={`mt-1.5 h-2 w-2 rounded-full flex-shrink-0 ${
+                      n.status !== 'read' ? 'bg-blue-500' : 'bg-transparent'
+                    }`} />
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm leading-snug ${
+                        n.status !== 'read' ? 'text-gray-900 font-medium' : 'text-gray-500'
+                      }`}>{n.message}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">{timeAgo(n.created_at)}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Footer */}
           <div className="px-4 py-2 border-t border-gray-100">
             <button
               onClick={() => { setOpen(false); router.push('/notifications'); }}
