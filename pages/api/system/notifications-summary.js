@@ -29,6 +29,18 @@ export default async function handler(req, res) {
     }
   }
 
+  // ── DELETE: remove a notification ─────────────────────────────────────────
+  if (req.method === 'DELETE') {
+    const { id } = req.body;
+    if (!id) return res.status(400).json({ success: false, error: 'id required' });
+    try {
+      await supabase.from('admin_notifications').delete().eq('id', id);
+      return res.json({ success: true });
+    } catch (err) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
   // ── GET: fetch notifications + system alerts separately ──────────────────

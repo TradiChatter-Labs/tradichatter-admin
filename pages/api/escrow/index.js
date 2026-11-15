@@ -1,8 +1,27 @@
-import { getEscrows, updateEscrow, logAdminAction } from '../../../lib/supabaseAdmin';
+import { getEscrows, updateEscrow, logAdminAction, supabase } from '../../../lib/supabaseAdmin';
 
 export default async function handler(req, res) {
   if (req.method === 'GET') {
-    const { status, page = 1, limit = 50 } = req.query;
+    const { status, page = 1, limit = 50, id } = req.query;
+
+    // Single escrow detail fetch with timeline
+    if (id) {
+      const { data: escrow, error } = await supabase
+        .from('escrow_transactions')
+        .select('*')
+        .eq('id', id)
+        .single();
+      if (error) return res.status(404).json({ success: false, error: 'Escrow not found' });
+
+      const { data: logs } = await supabase
+        .from('admin_audit_logs')
+        .select('action, created_at, details')
+        .eq('entity_id', id)
+        .order('created_at', { ascending: true });
+
+      return res.json({ success: true, escrow, timeline: logs || [] });
+    }
+
     const { data, total, error } = await getEscrows({ status, page: Number(page), limit: Number(limit) });
     if (error) return res.status(500).json({ error: error.message });
     return res.json({ success: true, escrows: data, total });
