@@ -5,7 +5,7 @@ export default async function handler(req, res) {
 
   try {
     const [escrowRes, ordersRes] = await Promise.all([
-      supabase.from('escrows').select('id, amount, status, created_at'),
+      supabase.from('escrow_transactions').select('id, amount, status, created_at'),
       supabase.from('orders').select('id, total_amount, payment_status, platform_commission_cents, created_at').not('payment_status', 'is', null),
     ]);
 
