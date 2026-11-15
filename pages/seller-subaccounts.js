@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import Layout from '../components/Layout';
 import { Search, CreditCard, CheckCircle, Clock, DollarSign } from 'lucide-react';
 
 export default function SellerSubaccounts() {
@@ -28,11 +27,10 @@ export default function SellerSubaccounts() {
     return matchSearch && matchStatus;
   });
 
-  if (loading) return <Layout><div className="flex justify-center py-12"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div></Layout>;
+  if (loading) return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>;
 
   return (
-    <Layout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Seller Subaccounts</h1>
           <p className="text-sm text-gray-500 mt-1">Flutterwave subaccounts for payment splits</p>
@@ -81,6 +79,5 @@ export default function SellerSubaccounts() {
           </table>
         </div>
       </div>
-    </Layout>
   );
 }

@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import Layout from '../components/Layout';
 import { Users, UserPlus, Shield, Clock } from 'lucide-react';
 
 export default function TeamManagement() {
@@ -33,11 +32,10 @@ export default function TeamManagement() {
   const activeMembers = teams.reduce((s, t) => s + t.members.filter(m => m.status === 'active').length, 0);
   const pendingInvites = teams.reduce((s, t) => s + t.members.filter(m => m.status === 'pending').length, 0);
 
-  if (loading) return <Layout><div className="flex justify-center py-12"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div></Layout>;
+  if (loading) return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>;
 
   return (
-    <Layout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div><h1 className="text-2xl font-bold text-gray-900">Team Management</h1><p className="text-sm text-gray-500 mt-1">Business teams and roles</p></div>
           <button onClick={() => setShowInvite(true)} className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm flex items-center"><UserPlus className="h-4 w-4 mr-2" />Invite Member</button>
@@ -93,6 +91,5 @@ export default function TeamManagement() {
           </div>
         )}
       </div>
-    </Layout>
   );
 }

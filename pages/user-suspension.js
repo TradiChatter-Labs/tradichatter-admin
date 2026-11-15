@@ -40,11 +40,10 @@ export default function UserSuspension() {
 
   const filtered = suspensions.filter(s => filter === 'all' || s.status === filter);
 
-  if (loading) return <Layout><div className="flex justify-center py-12"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div></Layout>;
+  if (loading) return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>;
 
   return (
-    <Layout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div><h1 className="text-2xl font-bold text-gray-900">User Suspension & Bans</h1><p className="text-sm text-gray-500 mt-1">Manage user access restrictions</p></div>
           <button className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm" onClick={() => setShowForm(true)}>New Action</button>
@@ -115,6 +114,5 @@ export default function UserSuspension() {
           </div>
         )}
       </div>
-    </Layout>
   );
 }

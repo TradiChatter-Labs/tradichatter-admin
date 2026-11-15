@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import Layout from '../components/Layout';
 import { Star, Flag, CheckCircle, XCircle } from 'lucide-react';
 
 export default function ReviewsManagement() {
@@ -36,11 +35,10 @@ export default function ReviewsManagement() {
 
   const filtered = reviews.filter(r => filter === 'all' || r.status === filter);
 
-  if (loading) return <Layout><div className="flex justify-center py-12"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div></Layout>;
+  if (loading) return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>;
 
   return (
-    <Layout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Reviews Management</h1>
           <p className="text-sm text-gray-500 mt-1">Moderate customer reviews</p>
@@ -90,6 +88,5 @@ export default function ReviewsManagement() {
           ))}
         </div>
       </div>
-    </Layout>
   );
 }

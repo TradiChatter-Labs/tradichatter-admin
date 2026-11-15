@@ -189,7 +189,7 @@ export default function SettingsPage() {
                 System Status
               </button>
             </Link>
-            <Link href="/security-audit-dashboard">
+            <Link href="/security-management">
               <button className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 w-full">
                 <Settings className="h-4 w-4 mr-2" />
                 Security Audit
