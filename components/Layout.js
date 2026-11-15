@@ -38,6 +38,10 @@ const ROUTE_LABELS = {
   '/maintenance-mode': 'Maintenance', '/settings': 'Settings',
   '/system-monitoring': 'System Monitoring', '/analytics': 'Analytics',
   '/error-management-dashboard': 'Error Tracking',
+  '/crm-activity': 'CRM Activity',
+  '/group-buying': 'Group Buying',
+  '/delivery-management': 'Delivery Management',
+  '/withdrawals': 'Withdrawals',
 };
 
 const SECTION_LABELS = {
@@ -69,6 +73,9 @@ const navGroups = [
       { name: 'KYC', href: '/kyc', icon: UserCheck },
       { name: 'Inventory', href: '/inventory', icon: Package },
       { name: 'Call Management', href: '/call-management', icon: Globe },
+      { name: 'CRM Activity', href: '/crm-activity', icon: Users },
+      { name: 'Group Buying', href: '/group-buying', icon: ShoppingCart },
+      { name: 'Delivery Management', href: '/delivery-management', icon: Truck },
     ]
   },
   {
@@ -143,6 +150,7 @@ const navGroups = [
       { name: 'Data Export', href: '/data-export', icon: Database },
       { name: 'Backup & Restore', href: '/backup-restore', icon: Database },
       { name: 'Mobile Control', href: '/mobile-control', icon: Smartphone },
+      { name: 'Withdrawals', href: '/withdrawals', icon: DollarSign },
       { name: 'Maintenance', href: '/maintenance-mode', icon: Settings },
       { name: 'Settings', href: '/settings', icon: Settings },
     ]

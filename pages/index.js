@@ -195,7 +195,7 @@ export default function Dashboard() {
               {stats.systemHealth?.healthy}/{stats.systemHealth?.total} healthy
             </span>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {Object.entries(stats.services).map(([key, svc]) => (
               <div key={key} className="flex items-center space-x-2 p-2 rounded border border-gray-100">
                 {getHealthIcon(svc.status)}
