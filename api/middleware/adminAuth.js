@@ -1,81 +1,56 @@
 import jwt from 'jsonwebtoken';
-import { db } from '../../config/database.js';
+import { supabase, logAdminAction } from '../../lib/supabaseAdmin.js';
 
-// Admin-specific authentication middleware (separate from mobile app)
 const adminAuth = async (req, res, next) => {
   try {
     const token = req.header('Admin-Authorization')?.replace('Bearer ', '');
-    
-    if (!token) {
-      return res.status(401).json({ error: 'Admin access denied. No token provided.' });
-    }
+    if (!token) return res.status(401).json({ error: 'Admin access denied. No token provided.' });
 
     const decoded = jwt.verify(token, process.env.ADMIN_JWT_SECRET);
-    
-    // Verify admin exists and is active
-    const [admin] = await db.execute(
-      'SELECT id, email, role, status FROM admins WHERE id = ? AND status = "ACTIVE"',
-      [decoded.adminId]
-    );
 
-    if (!admin.length) {
-      return res.status(401).json({ error: 'Invalid admin token' });
-    }
+    const { data: admin, error } = await supabase
+      .from('admin_users')
+      .select('id, email, role, status')
+      .eq('id', decoded.adminId)
+      .eq('status', 'active')
+      .single();
 
-    req.admin = admin[0];
+    if (error || !admin) return res.status(401).json({ error: 'Invalid admin token' });
+
+    req.admin = admin;
     next();
   } catch (error) {
     res.status(401).json({ error: 'Invalid admin token' });
   }
 };
 
-// Permission-based authorization
 const requirePermission = (resource, action) => {
   return async (req, res, next) => {
-    try {
-      const [permissions] = await db.execute(`
-        SELECT p.name FROM admin_permissions p
-        JOIN admin_role_permissions rp ON p.id = rp.permission_id
-        JOIN admin_user_roles ur ON rp.role_id = ur.role_id
-        WHERE ur.admin_id = ? AND p.resource = ? AND p.action = ?
-      `, [req.admin.id, resource, action]);
-
-      if (!permissions.length) {
-        return res.status(403).json({ error: 'Insufficient permissions' });
-      }
-
-      next();
-    } catch (error) {
-      res.status(500).json({ error: 'Permission check failed' });
+    // Permissions are role-based via admin_users.role — simplified check
+    if (!req.admin) return res.status(401).json({ error: 'Not authenticated' });
+    if (req.admin.role !== 'super_admin' && req.admin.role !== 'admin') {
+      return res.status(403).json({ error: 'Insufficient permissions' });
     }
+    next();
   };
 };
 
-// Audit logging middleware
 const auditLog = (actionType, resourceType) => {
   return async (req, res, next) => {
     const originalSend = res.send;
-    
-    res.send = function(data) {
-      // Log successful admin actions
-      if (res.statusCode < 400) {
-        db.execute(`
-          INSERT INTO audit_logs (admin_id, action_type, resource_type, resource_id, details, ip_address, user_agent)
-          VALUES (?, ?, ?, ?, ?, ?, ?)
-        `, [
-          req.admin.id,
-          actionType,
-          resourceType,
-          req.params.id || null,
-          JSON.stringify({ body: req.body, params: req.params }),
-          req.ip,
-          req.get('User-Agent')
-        ]).catch(console.error);
+    res.send = function (data) {
+      if (res.statusCode < 400 && req.admin) {
+        logAdminAction({
+          adminId: req.admin.id,
+          action: actionType,
+          entityType: resourceType,
+          entityId: req.params?.id || null,
+          details: { body: req.body, params: req.params },
+          ip: req.ip,
+        }).catch(console.error);
       }
-      
       originalSend.call(this, data);
     };
-    
     next();
   };
 };

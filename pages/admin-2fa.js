@@ -6,7 +6,7 @@ export default function Admin2FA() {
   const [currentAdmin] = useState({
     id: 'ADM-001',
     name: 'Super Admin',
-    email: 'admin@tradichatter.com',
+    email: 'admin@tradichatter.store',
     has2FA: false
   });
 
@@ -19,7 +19,7 @@ export default function Admin2FA() {
   useEffect(() => {
     if (step === 2) {
       // Generate QR code (in real app, this would come from backend)
-      setQrCode('otpauth://totp/TradiChatter:admin@tradichatter.com?secret=JBSWY3DPEHPK3PXP&issuer=TradiChatter');
+      setQrCode('otpauth://totp/TradiChatter:admin@tradichatter.store?secret=JBSWY3DPEHPK3PXP&issuer=TradiChatter');
       
       // Generate backup codes
       const codes = Array.from({ length: 8 }, () => 
