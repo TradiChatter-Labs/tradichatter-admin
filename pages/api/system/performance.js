@@ -1,4 +1,4 @@
-import { checkAllServicesHealth } from '../../../lib/serviceConnector';
+import { checkAllServicesHealth, getAIAgentMetrics } from '../../../lib/serviceConnector';
 import { supabase } from '../../../lib/supabaseAdmin';
 
 export default async function handler(req, res) {
@@ -7,11 +7,13 @@ export default async function handler(req, res) {
   try {
     const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-    const [services, ordersRes, usersRes, escrowRes] = await Promise.all([
+    const [services, ordersRes, usersRes, escrowRes, kycRes, aiMetricsRes] = await Promise.all([
       checkAllServicesHealth().catch(() => ({})),
       supabase.from('orders').select('id', { count: 'exact', head: true }).gte('created_at', since24h),
       supabase.from('profiles').select('id', { count: 'exact', head: true }),
       supabase.from('escrow_transactions').select('id, status', { count: 'exact', head: false }),
+      supabase.from('business_kyc').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+      getAIAgentMetrics().catch(() => ({ ok: false, data: null })),
     ]);
 
     // Real service latencies
@@ -33,6 +35,20 @@ export default async function handler(req, res) {
 
     const activeEscrow = (escrowRes.data || []).filter(e => e.status === 'active').length;
 
+    // Real AI metrics — only include if the service responded successfully
+    const aiMetrics = (aiMetricsRes.ok && aiMetricsRes.data)
+      ? {
+          available: true,
+          requestCount: aiMetricsRes.data.request_count ?? null,
+          avgLatencyMs: aiMetricsRes.data.avg_latency_ms ?? null,
+          escalationRatePct: aiMetricsRes.data.escalation_rate_percent ?? null,
+          errorRatePct: aiMetricsRes.data.error_rate_percent ?? null,
+          avgConfidence: aiMetricsRes.data.avg_confidence ?? null,
+          policyViolations: aiMetricsRes.data.policy_violations ?? null,
+          refusalRatePct: aiMetricsRes.data.refusal_rate_percent ?? null,
+        }
+      : { available: false };
+
     return res.json({
       success: true,
       source: 'real',
@@ -40,11 +56,13 @@ export default async function handler(req, res) {
         orders24h: ordersRes.count || 0,
         totalUsers: usersRes.count || 0,
         activeEscrow,
+        kycPending: kycRes.count || 0,
         avgServiceLatencyMs: avgLatency,
         uptimePercent,
         serviceLatencies,
         healthyServices: healthyCount,
         deployedServices: deployedServices.length,
+        aiMetrics,
         timestamp: new Date().toISOString(),
       },
     });

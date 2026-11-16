@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Bug, AlertTriangle, CheckCircle, RefreshCw, Clock, Activity, Users, ShoppingCart, Zap, Server } from 'lucide-react';
+import { Bug, AlertTriangle, CheckCircle, RefreshCw, Clock, Activity, Users, ShoppingCart, Zap, Server, FileCheck, Brain } from 'lucide-react';
 
 export default function OperationsDashboard() {
   const [errorData, setErrorData] = useState(null);
@@ -95,7 +95,7 @@ export default function OperationsDashboard() {
 
       {/* ── Real Platform Metrics ─────────────────────────────────────────── */}
       {perfData && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
           <div className="bg-white shadow rounded-lg p-4">
             <div className="flex items-center">
               <ShoppingCart className="h-7 w-7 text-blue-500" />
@@ -120,6 +120,17 @@ export default function OperationsDashboard() {
               <div className="ml-3">
                 <p className="text-xs text-gray-500">Active Escrow</p>
                 <p className="text-xl font-semibold text-gray-900">{perfData.activeEscrow}</p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white shadow rounded-lg p-4">
+            <div className="flex items-center">
+              <FileCheck className="h-7 w-7 text-orange-500" />
+              <div className="ml-3">
+                <p className="text-xs text-gray-500">KYC Pending</p>
+                <p className={`text-xl font-semibold ${perfData.kycPending > 0 ? 'text-orange-600' : 'text-gray-900'}`}>
+                  {perfData.kycPending}
+                </p>
               </div>
             </div>
           </div>
@@ -302,6 +313,91 @@ export default function OperationsDashboard() {
           </div>
         )}
       </div>
+
+      {/* ── AI Service Metrics (real data from /ai-gateway/metrics) ─────── */}
+      {perfData?.aiMetrics?.available && (
+        <div className="bg-white shadow rounded-lg mb-8">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <div className="flex items-center">
+              <Brain className="h-5 w-5 text-purple-500 mr-2" />
+              <h3 className="text-lg font-medium text-gray-900">AI Service Metrics</h3>
+            </div>
+            <p className="text-xs text-gray-500 mt-0.5">Live data from AI Agent Service — request count resets on service restart.</p>
+          </div>
+          <div className="p-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div className="bg-gray-50 rounded-lg p-4">
+              <p className="text-xs text-gray-500">Total Requests</p>
+              <p className="text-2xl font-semibold text-gray-900 mt-1">
+                {perfData.aiMetrics.requestCount ?? '—'}
+              </p>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-4">
+              <p className="text-xs text-gray-500">Avg Response Time</p>
+              <p className={`text-2xl font-semibold mt-1 ${
+                perfData.aiMetrics.avgLatencyMs > 5000 ? 'text-red-600' :
+                perfData.aiMetrics.avgLatencyMs > 2000 ? 'text-yellow-600' : 'text-gray-900'
+              }`}>
+                {perfData.aiMetrics.avgLatencyMs != null ? `${perfData.aiMetrics.avgLatencyMs}ms` : '—'}
+              </p>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-4">
+              <p className="text-xs text-gray-500">Avg Confidence</p>
+              <p className={`text-2xl font-semibold mt-1 ${
+                perfData.aiMetrics.avgConfidence < 0.7 ? 'text-red-600' :
+                perfData.aiMetrics.avgConfidence < 0.85 ? 'text-yellow-600' : 'text-green-600'
+              }`}>
+                {perfData.aiMetrics.avgConfidence != null
+                  ? `${(perfData.aiMetrics.avgConfidence * 100).toFixed(1)}%`
+                  : '—'}
+              </p>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-4">
+              <p className="text-xs text-gray-500">Error Rate</p>
+              <p className={`text-2xl font-semibold mt-1 ${
+                perfData.aiMetrics.errorRatePct > 10 ? 'text-red-600' :
+                perfData.aiMetrics.errorRatePct > 5 ? 'text-yellow-600' : 'text-gray-900'
+              }`}>
+                {perfData.aiMetrics.errorRatePct != null ? `${perfData.aiMetrics.errorRatePct}%` : '—'}
+              </p>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-4">
+              <p className="text-xs text-gray-500">Escalation Rate</p>
+              <p className={`text-2xl font-semibold mt-1 ${
+                perfData.aiMetrics.escalationRatePct > 60 ? 'text-red-600' :
+                perfData.aiMetrics.escalationRatePct > 30 ? 'text-yellow-600' : 'text-gray-900'
+              }`}>
+                {perfData.aiMetrics.escalationRatePct != null ? `${perfData.aiMetrics.escalationRatePct}%` : '—'}
+              </p>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-4">
+              <p className="text-xs text-gray-500">Refusal Rate</p>
+              <p className="text-2xl font-semibold text-gray-900 mt-1">
+                {perfData.aiMetrics.refusalRatePct != null ? `${perfData.aiMetrics.refusalRatePct}%` : '—'}
+              </p>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-4">
+              <p className="text-xs text-gray-500">Policy Violations</p>
+              <p className={`text-2xl font-semibold mt-1 ${
+                perfData.aiMetrics.policyViolations > 0 ? 'text-red-600' : 'text-gray-900'
+              }`}>
+                {perfData.aiMetrics.policyViolations ?? '—'}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      {perfData && !perfData.aiMetrics?.available && (
+        <div className="bg-white shadow rounded-lg mb-8">
+          <div className="px-6 py-4 border-b border-gray-200 flex items-center">
+            <Brain className="h-5 w-5 text-gray-400 mr-2" />
+            <h3 className="text-lg font-medium text-gray-900">AI Service Metrics</h3>
+          </div>
+          <div className="px-6 py-8 text-center text-gray-500">
+            <p className="text-sm">AI Agent Service is not reachable — metrics unavailable.</p>
+            <p className="text-xs text-gray-400 mt-1">Check service health in System Monitoring.</p>
+          </div>
+        </div>
+      )}
 
       {/* ── Service Latency Breakdown ─────────────────────────────────────── */}
       {perfData?.serviceLatencies?.length > 0 && (
