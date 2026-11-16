@@ -6,7 +6,19 @@ import {
   Image, AlertTriangle, CheckCircle, Type, AlignLeft, List, Lightbulb,
 } from 'lucide-react';
 
-const CATEGORIES = ['Business Tips', 'How-To', 'Nigerian Market', 'Product Updates'];
+const CATEGORIES = [
+  'Business Tips',
+  'How-To',
+  'Nigerian Market',
+  'Product Updates',
+  'Success Stories',
+  'Fraud & Safety',
+  'Payments & Escrow',
+  'Delivery & Logistics',
+  'Sales & Marketing',
+  'App Features',
+  'Entrepreneur Life',
+];
 const EMOJIS = ['📝','💡','🛡️','🔒','⚖️','📈','🚀','💰','🏪','📱','🌍','🤝','⚡','🔑','📊','🎯','💬','🛍️'];
 
 function toSlug(title) {
