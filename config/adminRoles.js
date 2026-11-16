@@ -30,6 +30,7 @@ export const PERMISSIONS = {
   
   // Content Moderation
   OVERRIDE_MODERATION: 'override_moderation',
+  MANAGE_BLOG: 'manage_blog',
   
   // System Actions
   ENABLE_SECURITY_FREEZE: 'enable_security_freeze',
@@ -48,7 +49,8 @@ export const ROLE_PERMISSIONS = {
     PERMISSIONS.VIEW_PLATFORM_METRICS,
     PERMISSIONS.RELEASE_ESCROW,
     PERMISSIONS.HOLD_ESCROW,
-    PERMISSIONS.OVERRIDE_MODERATION
+    PERMISSIONS.OVERRIDE_MODERATION,
+    PERMISSIONS.MANAGE_BLOG
   ],
   
   [ADMIN_ROLES.COMPLIANCE_ADMIN]: [

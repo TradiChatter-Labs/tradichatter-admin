@@ -38,6 +38,8 @@ const ROUTE_LABELS = {
   '/maintenance-mode': 'Maintenance', '/settings': 'Settings',
   '/system-monitoring': 'System Monitoring', '/analytics': 'Analytics',
   '/error-management-dashboard': 'Error Tracking',
+  '/blog-posts': 'Blog Posts',
+  '/blog-post-editor': 'Blog Post Editor',
   '/crm-activity': 'CRM Activity',
   '/group-buying': 'Group Buying',
   '/delivery-management': 'Delivery Management',
@@ -123,6 +125,12 @@ const navGroups = [
       { name: 'Management', href: '/affiliate-management', icon: Users },
       { name: 'Analytics', href: '/affiliate-analytics', icon: BarChart3 },
       { name: 'Program Settings', href: '/affiliate-settings', icon: Settings },
+    ]
+  },
+  {
+    label: 'Content',
+    items: [
+      { name: 'Blog Posts', href: '/blog-posts', icon: FileText },
     ]
   },
   {

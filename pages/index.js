@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Users, Store, DollarSign, BarChart3, ShoppingCart, CreditCard, TrendingUp, Settings, Shield, Activity, Globe, Bot, Truck, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
+import { Users, Store, DollarSign, BarChart3, ShoppingCart, CreditCard, TrendingUp, Settings, Shield, Activity, Globe, Bot, Truck, CheckCircle, AlertTriangle, XCircle, FileText } from 'lucide-react';
 
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
@@ -101,6 +101,14 @@ export default function Dashboard() {
       color: 'bg-amber-500',
       href: '/affiliate-section',
       features: ['Affiliate Management', 'Commission Tracking', 'Payouts', 'Leaderboard']
+    },
+    {
+      title: 'Blog & Content',
+      description: 'Write and publish blog posts to tradichatter.store/blog',
+      icon: FileText,
+      color: 'bg-emerald-500',
+      href: '/blog-posts',
+      features: ['Write Posts', 'Publish / Draft', 'Image Upload', 'Manage All Posts']
     },
     {
       title: 'System & Config',
@@ -296,6 +304,10 @@ export default function Dashboard() {
             <Link href="/admin-activity-logs" className="text-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
               <BarChart3 className="h-6 w-6 text-gray-500 mx-auto mb-1" />
               <div className="text-xs font-medium text-gray-900">Audit Logs</div>
+            </Link>
+            <Link href="/blog-posts" className="text-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
+              <FileText className="h-6 w-6 text-emerald-500 mx-auto mb-1" />
+              <div className="text-xs font-medium text-gray-900">Blog Posts</div>
             </Link>
           </div>
         </div>
