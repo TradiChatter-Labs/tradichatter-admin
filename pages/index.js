@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Users, Store, DollarSign, BarChart3, ShoppingCart, CreditCard, TrendingUp, Settings, Shield, Activity, Globe, Bot, Truck, CheckCircle, AlertTriangle, XCircle, FileText } from 'lucide-react';
+import { Users, Store, DollarSign, BarChart3, ShoppingCart, CreditCard, TrendingUp, Settings, Shield, Activity, Globe, Bot, Truck, CheckCircle, AlertTriangle, XCircle, FileText, X, Clock } from 'lucide-react';
 
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activity, setActivity] = useState([]);
+  const [comingSoon, setComingSoon] = useState(false);
 
   useEffect(() => {
     fetchDashboard();
@@ -68,6 +69,7 @@ export default function Dashboard() {
       icon: Truck,
       color: 'bg-indigo-500',
       href: '/sourcehub',
+      comingSoon: true,
       features: ['Supplier Management', 'Wholesale Orders', 'Escrow & Treasury', 'Disputes', 'Logistics']
     },
     {
@@ -217,35 +219,69 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* Coming Soon Modal */}
+      {comingSoon && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" onClick={() => setComingSoon(false)}>
+          <div className="bg-white rounded-xl shadow-2xl p-8 max-w-sm w-full mx-4 text-center" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-end mb-2">
+              <button onClick={() => setComingSoon(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="flex justify-center mb-4">
+              <div className="bg-indigo-100 rounded-full p-4">
+                <Clock className="h-10 w-10 text-indigo-500" />
+              </div>
+            </div>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Coming Soon</h2>
+            <p className="text-gray-500 text-sm mb-2">SourceHub (B2B) is currently under development.</p>
+            <p className="text-gray-400 text-xs mb-6">Supplier management, wholesale orders, escrow & logistics will be available soon.</p>
+            <button onClick={() => setComingSoon(false)} className="w-full bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium">
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Main Sections */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3 mb-8">
         {sections.map((section) => {
           const Icon = section.icon;
-          return (
-            <Link key={section.title} href={section.href}>
-              <div className="bg-white overflow-hidden shadow rounded-lg hover:shadow-lg transition-shadow cursor-pointer h-full">
-                <div className="p-6">
-                  <div className="flex items-center">
-                    <div className={`flex-shrink-0 ${section.color} rounded-md p-3`}>
-                      <Icon className="h-6 w-6 text-white" />
-                    </div>
-                    <div className="ml-4">
-                      <h3 className="text-lg font-medium text-gray-900">{section.title}</h3>
-                      <p className="mt-1 text-sm text-gray-500">{section.description}</p>
-                    </div>
+          const card = (
+            <div className="bg-white overflow-hidden shadow rounded-lg hover:shadow-lg transition-shadow cursor-pointer h-full">
+              <div className="p-6">
+                <div className="flex items-center">
+                  <div className={`flex-shrink-0 ${section.color} rounded-md p-3`}>
+                    <Icon className="h-6 w-6 text-white" />
                   </div>
-                  <div className="mt-4">
-                    <ul className="text-sm text-gray-500 space-y-1">
-                      {section.features.map((feature, i) => (
-                        <li key={i} className="flex items-center">
-                          <span className="w-1.5 h-1.5 bg-gray-400 rounded-full mr-2"></span>
-                          {feature}
-                        </li>
-                      ))}
-                    </ul>
+                  <div className="ml-4">
+                    <h3 className="text-lg font-medium text-gray-900">{section.title}</h3>
+                    <p className="mt-1 text-sm text-gray-500">{section.description}</p>
                   </div>
                 </div>
+                <div className="mt-4">
+                  <ul className="text-sm text-gray-500 space-y-1">
+                    {section.features.map((feature, i) => (
+                      <li key={i} className="flex items-center">
+                        <span className="w-1.5 h-1.5 bg-gray-400 rounded-full mr-2"></span>
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </div>
+            </div>
+          );
+          if (section.comingSoon) {
+            return (
+              <div key={section.title} onClick={() => setComingSoon(true)}>
+                {card}
+              </div>
+            );
+          }
+          return (
+            <Link key={section.title} href={section.href}>
+              {card}
             </Link>
           );
         })}
